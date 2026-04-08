@@ -8,12 +8,14 @@ import {
     Briefcase,
     GitMerge,
     BarChart,
-    LogOut
+    LogOut,
+    Layers
 } from 'lucide-react';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Jobs & Pipelines', href: '/dashboard/pipelines', icon: Briefcase },
+    { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase },
+    { name: 'Pipeline Board', href: '/dashboard/pipelines', icon: Layers },
     { name: 'Candidates', href: '/dashboard/candidates', icon: Users },
     { name: 'Workflow Builder', href: '/dashboard/workflows', icon: GitMerge },
     { name: 'Reports', href: '/dashboard/reports', icon: BarChart },
@@ -30,16 +32,20 @@ export default function Sidebar() {
     };
 
     return (
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-slate-900 px-6 pb-4">
-            <div className="flex h-16 shrink-0 items-center">
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-indigo-400">
-                    HireFlow SaaS
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-[#0a0f1a] px-6 pb-4 border-r border-[#1e293b]">
+            <div className="flex h-20 shrink-0 items-center gap-2">
+                <div className="flex gap-0.5">
+                    <div className="w-3 h-7 rounded-sm bg-white" />
+                    <div className="w-3 h-7 rounded-sm bg-[#c8ff00]" />
+                </div>
+                <span className="text-xl font-bold text-white tracking-tight">
+                    HireFlow
                 </span>
             </div>
             <nav className="flex flex-1 flex-col">
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
                     <li>
-                        <ul role="list" className="-mx-2 space-y-1">
+                        <ul role="list" className="-mx-2 space-y-2">
                             {navigation.map((item) => {
                                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                                 return (
@@ -47,15 +53,15 @@ export default function Sidebar() {
                                         <Link
                                             href={item.href}
                                             className={`
-                        group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors
-                        ${isActive
-                                                    ? 'bg-slate-800 text-white'
-                                                    : 'text-gray-400 hover:text-white hover:bg-slate-800'
+                                                group flex items-center gap-x-3 rounded-xl p-3 text-sm font-medium transition-all duration-200
+                                                ${isActive
+                                                    ? 'bg-[#c8ff00] text-[#0a0f1a] shadow-[0_0_15px_rgba(200,255,0,0.15)]'
+                                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                                                 }
-                      `}
+                                            `}
                                         >
                                             <item.icon
-                                                className={`h-6 w-6 shrink-0 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}
+                                                className={`h-5 w-5 shrink-0 ${isActive ? 'text-[#0a0f1a]' : 'text-slate-400 group-hover:text-white'}`}
                                                 aria-hidden="true"
                                             />
                                             {item.name}
@@ -68,9 +74,9 @@ export default function Sidebar() {
                     <li className="mt-auto">
                         <button
                             onClick={handleLogout}
-                            className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-400 hover:bg-slate-800 hover:text-white w-full transition-colors"
+                            className="group flex items-center gap-x-3 rounded-xl p-3 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors"
                         >
-                            <LogOut className="h-6 w-6 shrink-0 text-gray-400 group-hover:text-white" aria-hidden="true" />
+                            <LogOut className="h-5 w-5 shrink-0 text-slate-400 group-hover:text-red-400" aria-hidden="true" />
                             Log out
                         </button>
                     </li>

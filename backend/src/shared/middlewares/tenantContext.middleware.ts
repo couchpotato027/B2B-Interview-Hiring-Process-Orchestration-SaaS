@@ -11,14 +11,19 @@ export interface AppRequest extends Request {
     };
 }
 
-export const tenantContextMiddleware = (req: AppRequest, res: Response, next: NextFunction) => {
+export const tenantContextMiddleware = (req: AppRequest, res: Response, next: NextFunction): void => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized access. Token missing or invalid.' });
+        res.status(401).json({ error: 'Unauthorized access. Token missing or invalid.' });
+        return;
     }
 
     const token = authHeader.split(' ')[1];
+    if (!token) {
+        res.status(401).json({ error: 'Unauthorized access. Token missing or invalid.' });
+        return;
+    }
 
     try {
         const secret = process.env.JWT_SECRET || 'secret';
@@ -34,6 +39,6 @@ export const tenantContextMiddleware = (req: AppRequest, res: Response, next: Ne
         next();
     } catch (error) {
         logger.error({ err: error }, 'JWT Verification failed');
-        return res.status(403).json({ error: 'Token expired or invalid.' });
+        res.status(403).json({ error: 'Token expired or invalid.' });
     }
 };

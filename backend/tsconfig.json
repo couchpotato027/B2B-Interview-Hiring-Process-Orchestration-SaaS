@@ -1,15 +1,37 @@
 {
   "compilerOptions": {
-    "target": "es2022",
+    "target": "ES2022",
     "module": "commonjs",
     "moduleResolution": "node",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true,
+    "lib": ["ES2022"],
+    "types": ["node"],
     "rootDir": "./src",
     "outDir": "./dist",
-    "resolveJsonModule": true
+    "strict": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/application/**/*.ts",
+    "src/domain/**/*.ts",
+    "src/infrastructure/config/**/*.ts",
+    "src/infrastructure/di/**/*.ts",
+    "src/infrastructure/logging/**/*.ts",
+    "src/infrastructure/events/**/*.ts",
+    "src/infrastructure/observers/**/*.ts",
+    "src/infrastructure/parsers/**/*.ts",
+    "src/infrastructure/repositories/**/*.ts",
+    "src/infrastructure/services/**/*.ts",
+    "src/presentation/**/*.ts",
+    "src/index.ts",
+    "src/shared/Result.ts",
+    "src/shared/errors/**/*.ts",
+    "src/shared/types/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
 }

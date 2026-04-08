@@ -23,15 +23,19 @@ model Tenant {
   evaluations       Evaluation[]
   decisions         Decision[]
   slaAlerts         SlaAlert[]
+  jobs              Job[]
+  interviews        Interview[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
 }
 
 model Role {
-  id       String   @id @default(uuid())
+  id       String @id @default(uuid())
   tenantId String
-  name     String   // e.g., 'ADMIN', 'RECRUITER', 'INTERVIEWER'
+  name     String // e.g., 'ADMIN', 'RECRUITER', 'INTERVIEWER'
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users    User[]
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users  User[]
 
   @@unique([tenantId, name])
 }
@@ -42,13 +46,38 @@ model User {
   roleId       String
   email        String
   passwordHash String
+  firstName    String   @default("")
+  lastName     String   @default("")
   createdAt    DateTime @default(now())
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   role         Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
   evaluations  Evaluation[]
+  interviews   Interview[]
+  auditLogs    AuditLog[]
+  notifications Notification[]
+  managedJobs  Job[]        @relation("HiringManager")
 
   @@unique([tenantId, email])
+}
+
+model Job {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  title              String
+  department         String   @default("")
+  hiringManagerId    String?
+  pipelineTemplateId String?
+  status             String   @default("OPEN") // OPEN, CLOSED, ARCHIVED
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hiringManager      User?             @relation("HiringManager", fields: [hiringManagerId], references: [id], onDelete: SetNull)
+  pipelineTemplate   PipelineTemplate? @relation(fields: [pipelineTemplateId], references: [id], onDelete: SetNull)
+  candidates         Candidate[]
+
+  @@index([tenantId, status])
 }
 
 model PipelineTemplate {
@@ -59,9 +88,10 @@ model PipelineTemplate {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  stages    PipelineStage[]
+  tenant     Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stages     PipelineStage[]
   candidates Candidate[]
+  jobs       Job[]
 
   @@unique([tenantId, name])
 }
@@ -73,11 +103,13 @@ model PipelineStage {
   name               String
   orderIndex         Int
   slaHours           Int      @default(48) // Default 48h SLA for bottleneck
+  stageType          String   @default("INTERVIEW") // STATIC, INTERVIEW, ASSESSMENT, AUTOMATED
 
   tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   pipelineTemplate   PipelineTemplate @relation(fields: [pipelineTemplateId], references: [id], onDelete: Cascade)
   candidates         Candidate[]
   evaluations        Evaluation[]
+  interviews         Interview[]
 
   @@unique([pipelineTemplateId, orderIndex])
 }
@@ -86,62 +118,121 @@ model Candidate {
   id             String   @id @default(uuid())
   tenantId       String
   pipelineId     String
+  jobId          String?
   currentStageId String?
   firstName      String
   lastName       String
   email          String
+  resumeUrl      String?
   status         String   @default("ACTIVE") // ACTIVE, REJECTED, HIRED, ON_HOLD
   stageEnteredAt DateTime @default(now())
+  createdAt      DateTime @default(now())
   version        Int      @default(1) // OCC support
 
-  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  pipeline       PipelineTemplate @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
-  currentStage   PipelineStage?   @relation(fields: [currentStageId], references: [id], onDelete: SetNull)
-  evaluations    Evaluation[]
-  decisions      Decision[]
-  slaAlerts      SlaAlert[]
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pipeline     PipelineTemplate @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
+  job          Job?             @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  currentStage PipelineStage?   @relation(fields: [currentStageId], references: [id], onDelete: SetNull)
+  evaluations  Evaluation[]
+  decisions    Decision[]
+  slaAlerts    SlaAlert[]
+  interviews   Interview[]
 
   @@index([tenantId, pipelineId, currentStageId])
+  @@index([tenantId, status])
 }
 
 model Evaluation {
-  id            String   @id @default(uuid())
-  tenantId      String
-  candidateId   String
-  stageId       String
-  interviewerId String
-  scores        Json     // Flexible scorecard (JSONB)
-  recommendation String   // 'STRONG_HIRE', 'HIRE', 'NO_HIRE'
-  createdAt     DateTime @default(now())
-
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  candidate     Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  stage         PipelineStage @relation(fields: [stageId], references: [id], onDelete: SetNull)
-  interviewer   User          @relation(fields: [interviewerId], references: [id], onDelete: Restrict)
-}
-
-model Decision {
-  id              String   @id @default(uuid())
-  tenantId        String
-  candidateId     String
-  finalDecision   String   // 'HIRE', 'NO_HIRE'
-  hasConflict     Boolean  @default(false)
-  decisionNotes   String?
-  createdAt       DateTime @default(now())
-
-  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-}
-
-model SlaAlert {
   id             String   @id @default(uuid())
   tenantId       String
   candidateId    String
   stageId        String
-  alertMessage   String
-  isResolved     Boolean  @default(false)
+  interviewerId  String
+  scores         Json     // Flexible scorecard (JSONB)
+  recommendation String   // 'STRONG_HIRE', 'HIRE', 'NO_HIRE'
   createdAt      DateTime @default(now())
 
-  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  candidate      Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  candidate   Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  stage       PipelineStage @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  interviewer User          @relation(fields: [interviewerId], references: [id], onDelete: Restrict)
+}
+
+model Decision {
+  id            String   @id @default(uuid())
+  tenantId      String
+  candidateId   String
+  finalDecision String   // 'HIRE', 'NO_HIRE'
+  hasConflict   Boolean  @default(false)
+  decisionNotes String?
+  createdAt     DateTime @default(now())
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model SlaAlert {
+  id           String   @id @default(uuid())
+  tenantId     String
+  candidateId  String
+  stageId      String
+  alertMessage String
+  isResolved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model Interview {
+  id             String   @id @default(uuid())
+  tenantId       String
+  candidateId    String
+  stageId        String
+  interviewerId  String
+  scheduledAt    DateTime
+  feedbackStatus String   @default("PENDING") // PENDING, SUBMITTED
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  candidate   Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  stage       PipelineStage @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  interviewer User          @relation(fields: [interviewerId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, candidateId])
+  @@index([tenantId, interviewerId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String?
+  action     String   // e.g., 'CANDIDATE_MOVED_STAGE', 'FEEDBACK_SUBMITTED', 'DECISION_FINALIZED', 'USER_LOGIN'
+  entityType String   // e.g., 'Candidate', 'Evaluation', 'Decision'
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  type      String   // 'SLA_VIOLATION', 'INTERVIEW_SCHEDULED', 'FEEDBACK_REQUIRED', 'DECISION_MADE'
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId, isRead])
 }

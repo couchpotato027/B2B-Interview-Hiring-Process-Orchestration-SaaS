@@ -1,10 +1,11 @@
 import { prisma } from '../../../infrastructure/database/prisma.client';
-import { Candidate, PipelineStage } from '@prisma/client';
+import { Candidate } from '@prisma/client';
 
 export interface ICandidateState {
     enterState(candidate: Candidate, tenantId: string): Promise<void>;
     nextStage(candidate: Candidate, tenantId: string, nextStageId: string): Promise<void>;
     reject(candidate: Candidate, tenantId: string, reason?: string): Promise<void>;
+    hire(candidate: Candidate, tenantId: string): Promise<void>;
 }
 
 export class CandidateContext {
@@ -28,11 +29,14 @@ export class CandidateContext {
     public async reject(tenantId: string, reason?: string): Promise<void> {
         await this.state.reject(this.candidate, tenantId, reason);
     }
+
+    public async hire(tenantId: string): Promise<void> {
+        await this.state.hire(this.candidate, tenantId);
+    }
 }
 
 export class ActiveState implements ICandidateState {
     async enterState(candidate: Candidate, tenantId: string): Promise<void> {
-        // Audit logs or SLA events could be dispatched here
         await prisma.candidate.update({
             where: { id: candidate.id, tenantId },
             data: { status: 'ACTIVE', stageEnteredAt: new Date() },
@@ -40,18 +44,20 @@ export class ActiveState implements ICandidateState {
     }
 
     async nextStage(candidate: Candidate, tenantId: string, nextStageId: string): Promise<void> {
-        // Only ACTIVE candidates can transition stages
         await prisma.candidate.update({
             where: { id: candidate.id, tenantId },
             data: { currentStageId: nextStageId, stageEnteredAt: new Date() },
         });
-        // Real implementation would re-instantiate CandidateContext if different states per stage existed
     }
 
     async reject(candidate: Candidate, tenantId: string, reason?: string): Promise<void> {
-        // Transition to Rejected
         const rejectedState = new RejectedState();
         await rejectedState.enterState(candidate, tenantId);
+    }
+
+    async hire(candidate: Candidate, tenantId: string): Promise<void> {
+        const hiredState = new HiredState();
+        await hiredState.enterState(candidate, tenantId);
     }
 }
 
@@ -69,5 +75,30 @@ export class RejectedState implements ICandidateState {
 
     async reject(candidate: Candidate, tenantId: string, reason?: string): Promise<void> {
         throw new Error('Candidate is already rejected.');
+    }
+
+    async hire(candidate: Candidate, tenantId: string): Promise<void> {
+        throw new Error('Cannot hire a rejected candidate.');
+    }
+}
+
+export class HiredState implements ICandidateState {
+    async enterState(candidate: Candidate, tenantId: string): Promise<void> {
+        await prisma.candidate.update({
+            where: { id: candidate.id, tenantId },
+            data: { status: 'HIRED', stageEnteredAt: new Date() },
+        });
+    }
+
+    async nextStage(candidate: Candidate, tenantId: string, nextStageId: string): Promise<void> {
+        throw new Error('Cannot advance a hired candidate.');
+    }
+
+    async reject(candidate: Candidate, tenantId: string, reason?: string): Promise<void> {
+        throw new Error('Cannot reject a hired candidate.');
+    }
+
+    async hire(candidate: Candidate, tenantId: string): Promise<void> {
+        throw new Error('Candidate is already hired.');
     }
 }

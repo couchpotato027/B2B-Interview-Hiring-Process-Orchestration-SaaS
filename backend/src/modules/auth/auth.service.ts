@@ -6,7 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 const EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 
 export class AuthService {
-    async registerTenant(companyName: string, adminEmail: string, adminPassword: string) {
+    async registerTenant(companyName: string, adminEmail: string, adminPassword: string, firstName?: string, lastName?: string) {
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
         return await prisma.$transaction(async (tx) => {
@@ -34,6 +34,8 @@ export class AuthService {
                     roleId: adminRole.id,
                     email: adminEmail,
                     passwordHash: hashedPassword,
+                    firstName: firstName || '',
+                    lastName: lastName || '',
                 },
             });
 
@@ -60,6 +62,54 @@ export class AuthService {
         };
 
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: EXPIRES_IN as any });
-        return { token, user: payload };
+        return { token, user: { ...payload, firstName: user.firstName, lastName: user.lastName } };
+    }
+
+    async getMe(userId: string) {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { role: true, tenant: { select: { id: true, name: true } } },
+        });
+        if (!user) throw { statusCode: 404, message: 'User not found' };
+
+        return {
+            id: user.id,
+            tenantId: user.tenantId,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role.name,
+            tenant: user.tenant,
+        };
+    }
+
+    async listUsers(tenantId: string) {
+        return prisma.user.findMany({
+            where: { tenantId },
+            select: { id: true, email: true, firstName: true, lastName: true, role: { select: { name: true } }, createdAt: true },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async createUser(tenantId: string, data: { email: string; password: string; firstName?: string; lastName?: string; roleName: string }) {
+        const role = await prisma.role.findFirst({ where: { tenantId, name: data.roleName } });
+        if (!role) throw { statusCode: 400, message: `Role ${data.roleName} not found` };
+
+        const existing = await prisma.user.findFirst({ where: { tenantId, email: data.email } });
+        if (existing) throw { statusCode: 400, message: 'User with this email already exists' };
+
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+
+        return prisma.user.create({
+            data: {
+                tenantId,
+                roleId: role.id,
+                email: data.email,
+                passwordHash: hashedPassword,
+                firstName: data.firstName || '',
+                lastName: data.lastName || '',
+            },
+            select: { id: true, email: true, firstName: true, lastName: true, role: { select: { name: true } }, createdAt: true },
+        });
     }
 }

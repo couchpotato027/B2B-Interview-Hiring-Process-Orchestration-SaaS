@@ -3,7 +3,7 @@ import { ScorecardAggregator, ConsensusDrivenStrategy } from './patterns/evaluat
 
 export class EvaluationService {
     async submitFeedback(data: { tenantId: string; candidateId: string; stageId: string; interviewerId: string; scores: any; recommendation: string }) {
-        return await prisma.evaluation.create({
+        const evaluation = await prisma.evaluation.create({
             data: {
                 tenantId: data.tenantId,
                 candidateId: data.candidateId,
@@ -11,6 +11,36 @@ export class EvaluationService {
                 interviewerId: data.interviewerId,
                 scores: data.scores,
                 recommendation: data.recommendation,
+            },
+            include: {
+                interviewer: { select: { firstName: true, lastName: true, email: true } },
+                stage: { select: { name: true } },
+                candidate: { select: { firstName: true, lastName: true } },
+            },
+        });
+
+        // Mark related interview as SUBMITTED
+        await prisma.interview.updateMany({
+            where: {
+                tenantId: data.tenantId,
+                candidateId: data.candidateId,
+                stageId: data.stageId,
+                interviewerId: data.interviewerId,
+                feedbackStatus: 'PENDING',
+            },
+            data: { feedbackStatus: 'SUBMITTED' },
+        });
+
+        return evaluation;
+    }
+
+    async listEvaluationsForCandidate(tenantId: string, candidateId: string) {
+        return prisma.evaluation.findMany({
+            where: { tenantId, candidateId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                interviewer: { select: { firstName: true, lastName: true, email: true } },
+                stage: { select: { name: true } },
             },
         });
     }
@@ -36,5 +66,12 @@ export class EvaluationService {
         });
 
         return decision;
+    }
+
+    async getDecision(tenantId: string, candidateId: string) {
+        return prisma.decision.findFirst({
+            where: { tenantId, candidateId },
+            orderBy: { createdAt: 'desc' },
+        });
     }
 }

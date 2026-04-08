@@ -1,7 +1,6 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-    // In a real application, you'd get this from a secure HTTP cookie or Context API
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
     const headers = new Headers(options.headers || {});
@@ -16,32 +15,17 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         headers,
     });
 
+    const data = await response.json();
     if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'API Request failed');
+        throw new Error((data as { message?: string })?.message || 'API request failed');
     }
 
-    return response.json();
+    return data;
 }
 
-// Example API method
-export const candidateApi = {
-    addCandidate: async (data: { firstName: string; lastName: string; email: string; pipelineId: string; initialStageId: string }) => {
-        return fetchWithAuth('/candidates', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        });
-    },
-    moveStage: async (candidateId: string, newStageId: string) => {
-        return fetchWithAuth(`/candidates/${candidateId}/transition`, {
-            method: 'POST',
-            body: JSON.stringify({ newStageId }),
-        });
-    }
-};
-
+// ─── Auth ────────────────────────────────────────────────────────────
 export const authApi = {
-    register: async (data: any) => {
+    register: async (data: unknown) => {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -49,11 +33,15 @@ export const authApi = {
         });
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.message || error.error || 'Registration failed');
+            let errorMessage = 'Registration failed';
+            if (typeof error.message === 'string') errorMessage = error.message;
+            else if (typeof error.error === 'string') errorMessage = error.error;
+            else if (error.error?.message) errorMessage = error.error.message;
+            throw new Error(errorMessage);
         }
         return response.json();
     },
-    login: async (data: any) => {
+    login: async (data: unknown) => {
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -61,8 +49,89 @@ export const authApi = {
         });
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.message || error.error || 'Login failed');
+            let errorMessage = 'Login failed';
+            if (typeof error.message === 'string') errorMessage = error.message;
+            else if (typeof error.error === 'string') errorMessage = error.error;
+            else if (error.error?.message) errorMessage = error.error.message;
+            throw new Error(errorMessage);
         }
         return response.json();
-    }
+    },
+    getMe: () => fetchWithAuth('/auth/me'),
+    listUsers: () => fetchWithAuth('/auth/users'),
+    createUser: (data: unknown) => fetchWithAuth('/auth/users', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ─── Dashboard ─────────────────────────────────────────────────────
+export const dashboardApi = {
+    getStats: () => fetchWithAuth('/dashboard/stats'),
+    getAlerts: () => fetchWithAuth('/dashboard/alerts'),
+    getPendingEvaluations: () => fetchWithAuth('/dashboard/pending-evaluations'),
+};
+
+// ─── Jobs ──────────────────────────────────────────────────────────
+export const jobApi = {
+    list: (status?: string) => fetchWithAuth(`/jobs${status ? `?status=${status}` : ''}`),
+    get: (id: string) => fetchWithAuth(`/jobs/${id}`),
+    create: (data: unknown) => fetchWithAuth('/jobs', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: unknown) => fetchWithAuth(`/jobs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    archive: (id: string) => fetchWithAuth(`/jobs/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Candidates ────────────────────────────────────────────────────
+export const candidateApi = {
+    list: (filters?: Record<string, string>) => {
+        const params = new URLSearchParams(filters || {}).toString();
+        return fetchWithAuth(`/candidates${params ? `?${params}` : ''}`);
+    },
+    get: (id: string) => fetchWithAuth(`/candidates/${id}`),
+    create: (data: unknown) => fetchWithAuth('/candidates', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: unknown) => fetchWithAuth(`/candidates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => fetchWithAuth(`/candidates/${id}`, { method: 'DELETE' }),
+    moveStage: (id: string, newStageId: string) => fetchWithAuth(`/candidates/${id}/transition`, { method: 'POST', body: JSON.stringify({ newStageId }) }),
+    reject: (id: string) => fetchWithAuth(`/candidates/${id}/reject`, { method: 'POST' }),
+    hire: (id: string) => fetchWithAuth(`/candidates/${id}/hire`, { method: 'POST' }),
+};
+
+// ─── Pipelines ─────────────────────────────────────────────────────
+export const pipelineApi = {
+    list: () => fetchWithAuth('/pipelines'),
+    get: (id: string) => fetchWithAuth(`/pipelines/${id}`),
+    create: (data: unknown) => fetchWithAuth('/pipelines', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: unknown) => fetchWithAuth(`/pipelines/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => fetchWithAuth(`/pipelines/${id}`, { method: 'DELETE' }),
+    reorderStages: (id: string, stageOrder: unknown) => fetchWithAuth(`/pipelines/${id}/reorder`, { method: 'PUT', body: JSON.stringify({ stageOrder }) }),
+    addStage: (id: string, data: unknown) => fetchWithAuth(`/pipelines/${id}/stages`, { method: 'POST', body: JSON.stringify(data) }),
+    deleteStage: (pipelineId: string, stageId: string) => fetchWithAuth(`/pipelines/${pipelineId}/stages/${stageId}`, { method: 'DELETE' }),
+};
+
+// ─── Evaluations ───────────────────────────────────────────────────
+export const evaluationApi = {
+    submit: (data: any) => fetchWithAuth('/evaluations', { method: 'POST', body: JSON.stringify(data) }),
+    listForCandidate: (candidateId: string) => fetchWithAuth(`/evaluations/candidate/${candidateId}`),
+    aggregate: (candidateId: string) => fetchWithAuth(`/evaluations/aggregate/${candidateId}`, { method: 'POST' }),
+    getDecision: (candidateId: string) => fetchWithAuth(`/evaluations/decision/${candidateId}`),
+};
+
+// ─── Interviews ────────────────────────────────────────────────────
+export const interviewApi = {
+    list: (filters?: Record<string, string>) => {
+        const params = new URLSearchParams(filters || {}).toString();
+        return fetchWithAuth(`/interviews${params ? `?${params}` : ''}`);
+    },
+    schedule: (data: unknown) => fetchWithAuth('/interviews', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: unknown) => fetchWithAuth(`/interviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+};
+
+// ─── Reports ───────────────────────────────────────────────────────
+export const reportsApi = {
+    funnel: () => fetchWithAuth('/reports/funnel'),
+    dropoff: () => fetchWithAuth('/reports/dropoff'),
+    timeToHire: () => fetchWithAuth('/reports/time-to-hire'),
+    offerRate: () => fetchWithAuth('/reports/offer-rate'),
+};
+
+// ─── Audit ─────────────────────────────────────────────────────────
+export const auditApi = {
+    list: (page = 1, limit = 50) => fetchWithAuth(`/audit?page=${page}&limit=${limit}`),
 };
