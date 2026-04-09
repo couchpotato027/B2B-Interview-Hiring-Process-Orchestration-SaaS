@@ -102,7 +102,7 @@ export class Job {
   }
 
   private static normalizeSkills(skills: string[]): string[] {
-    return [...new Set(skills.map((skill) => Job.requireNonEmpty(skill, 'Skill is required.')))];
+    return Array.from(new Set(skills.map((skill) => Job.requireNonEmpty(skill, 'Skill is required.'))));
   }
 
   private static requireNonEmpty(value: string, message: string): string {

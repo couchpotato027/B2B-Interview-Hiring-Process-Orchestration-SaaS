@@ -8,6 +8,7 @@ import { SLAMonitorObserver } from './SLAMonitorObserver';
 import { StageTransitionObserver } from './StageTransitionObserver';
 import { AutoEmailObserver } from './AutoEmailObserver';
 import { SLATrackingObserver } from './SLATrackingObserver';
+import { AnalyticsCacheObserver } from './AnalyticsCacheObserver';
 
 export class ObserverRegistry {
   private readonly eventEmitter: EventEmitter;
@@ -26,12 +27,17 @@ export class ObserverRegistry {
     const stageTransitionObserver = new StageTransitionObserver();
     const autoEmailObserver = new AutoEmailObserver();
     const slaTrackingObserver = new SLATrackingObserver();
+    const analyticsCacheObserver = new AnalyticsCacheObserver();
 
     this.registerObserver(emailNotificationObserver);
     this.registerObserver(slaMonitorObserver);
     this.registerObserver(stageTransitionObserver);
     this.registerObserver(autoEmailObserver);
     this.registerObserver(slaTrackingObserver);
+
+    for (const eventType of analyticsCacheObserver.getSupportedEventTypes()) {
+        this.registerObserverForEventType(analyticsCacheObserver, eventType);
+    }
 
     for (const eventType of dashboardMetricsObserver.getSupportedEventTypes()) {
       this.registerObserverForEventType(dashboardMetricsObserver, eventType);

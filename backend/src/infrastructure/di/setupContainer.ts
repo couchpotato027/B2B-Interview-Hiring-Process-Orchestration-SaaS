@@ -1,5 +1,6 @@
 import { CandidateScorer } from '../../application/services/CandidateScorer';
 import { ResumeParsingService } from '../../application/services/ResumeParsingService';
+import { AnalyticsService } from '../../application/services/AnalyticsService';
 import { CreateJobUseCase } from '../../application/use-cases/CreateJobUseCase';
 import { EvaluateCandidateUseCase } from '../../application/use-cases/EvaluateCandidateUseCase';
 import { GetCandidateDetailsUseCase } from '../../application/use-cases/GetCandidateDetailsUseCase';
@@ -10,6 +11,9 @@ import { BatchEvaluationUseCase } from '../../application/use-cases/BatchEvaluat
 import { ComparativeCandidateAnalysisUseCase } from '../../application/use-cases/ComparativeCandidateAnalysisUseCase';
 import { JobMarketInsightsUseCase } from '../../application/use-cases/JobMarketInsightsUseCase';
 import { ResumeFeedbackUseCase } from '../../application/use-cases/ResumeFeedbackUseCase';
+import { GenerateHiringDashboardUseCase } from '../../application/use-cases/GenerateHiringDashboardUseCase';
+import { GenerateJobReportUseCase } from '../../application/use-cases/GenerateJobReportUseCase';
+import { ExportCandidateDataUseCase } from '../../application/use-cases/ExportCandidateDataUseCase';
 import { CreatePipelineUseCase } from '../../application/use-cases/CreatePipelineUseCase';
 import { MoveCandidateThroughPipelineUseCase } from '../../application/use-cases/MoveCandidateThroughPipelineUseCase';
 import { GetPipelineBoardUseCase } from '../../application/use-cases/GetPipelineBoardUseCase';
@@ -29,6 +33,7 @@ import { InMemoryPipelineRepository } from '../repositories/InMemoryPipelineRepo
 import { InMemoryCandidatePipelineStatusRepository } from '../repositories/InMemoryCandidatePipelineStatusRepository';
 import { GeminiAIService } from '../services/GeminiAIService';
 import { NoopAIService } from '../services/NoopAIService';
+import { ScheduledAnalyticsService } from '../jobs/ScheduledAnalyticsService';
 import { env } from '../config/env';
 import { Container } from './Container';
 
@@ -49,6 +54,15 @@ export const setupContainer = (): Container => {
     env.geminiApiKey ? new GeminiAIService() : new NoopAIService(),
   );
   container.register('ResumeParsingService', () => new ResumeParsingService());
+  
+  container.register('AnalyticsService', () => new AnalyticsService(
+    container.resolve('CandidateRepository'),
+    container.resolve('JobRepository'),
+    container.resolve('EvaluationRepository'),
+    container.resolve('PipelineRepository'),
+    container.resolve('CandidatePipelineStatusRepository')
+  ));
+
   container.register(
     'CandidateScorer',
     () => new CandidateScorer(ScoringStrategyFactory.getDefaultStrategies()),
@@ -153,6 +167,31 @@ export const setupContainer = (): Container => {
       ),
   );
 
+  // Analytics Use Cases
+  container.register(
+    'GenerateHiringDashboardUseCase',
+    () => new GenerateHiringDashboardUseCase(container.resolve('AnalyticsService'))
+  );
+
+  container.register(
+    'GenerateJobReportUseCase',
+    () => new GenerateJobReportUseCase(
+        container.resolve('JobRepository'),
+        container.resolve('EvaluationRepository'),
+        container.resolve('CandidateRepository'),
+        container.resolve('AnalyticsService')
+    )
+  );
+
+  container.register(
+    'ExportCandidateDataUseCase',
+    () => new ExportCandidateDataUseCase(
+        container.resolve('CandidateRepository'),
+        container.resolve('CandidatePipelineStatusRepository'),
+        container.resolve('PipelineRepository')
+    )
+  );
+
   // Pipeline Use Cases
   container.register(
     'CreatePipelineUseCase',
@@ -197,6 +236,13 @@ export const setupContainer = (): Container => {
   );
 
   container.resolve<ObserverRegistry>('ObserverRegistry').registerAll();
+
+  // Initialize Scheduled Jobs
+  const scheduledAnalytics = new ScheduledAnalyticsService(
+    container.resolve('GenerateHiringDashboardUseCase'),
+    container.resolve('AnalyticsService')
+  );
+  scheduledAnalytics.start();
 
   return container;
 };

@@ -124,7 +124,7 @@ export class Candidate {
   }
 
   private static normalizeSkills(skills: string[]): string[] {
-    return [...new Set(skills.map((skill) => Candidate.requireNonEmpty(skill, 'Skill is required.')))];
+    return Array.from(new Set(skills.map((skill) => Candidate.requireNonEmpty(skill, 'Skill is required.'))));
   }
 
   private static validateProjects(projects: CandidateProject[]): CandidateProject[] {
