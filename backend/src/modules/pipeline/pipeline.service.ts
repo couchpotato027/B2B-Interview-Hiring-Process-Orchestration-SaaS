@@ -1,4 +1,5 @@
 import { prisma } from '../../infrastructure/database/prisma.client';
+import { NotFoundError, ValidationError } from '../../shared/errors/DomainErrors';
 import { BackgroundCheckStageExecutor } from './patterns/pipeline.template';
 
 export class PipelineService {
@@ -46,13 +47,13 @@ export class PipelineService {
                 },
             },
         });
-        if (!pipeline) throw { statusCode: 404, message: 'Pipeline not found' };
+        if (!pipeline) throw new NotFoundError('Pipeline not found');
         return pipeline;
     }
 
     async updatePipeline(tenantId: string, pipelineId: string, data: { name?: string; roleType?: string; isActive?: boolean }) {
         const pipeline = await prisma.pipelineTemplate.findFirst({ where: { id: pipelineId, tenantId } });
-        if (!pipeline) throw { statusCode: 404, message: 'Pipeline not found' };
+        if (!pipeline) throw new NotFoundError('Pipeline not found');
 
         return prisma.pipelineTemplate.update({
             where: { id: pipelineId },
@@ -63,12 +64,12 @@ export class PipelineService {
 
     async deletePipeline(tenantId: string, pipelineId: string) {
         const pipeline = await prisma.pipelineTemplate.findFirst({ where: { id: pipelineId, tenantId } });
-        if (!pipeline) throw { statusCode: 404, message: 'Pipeline not found' };
+        if (!pipeline) throw new NotFoundError('Pipeline not found');
 
         // Check if any candidates are using this pipeline
         const candidateCount = await prisma.candidate.count({ where: { pipelineId } });
         if (candidateCount > 0) {
-            throw { statusCode: 400, message: 'Cannot delete pipeline with active candidates' };
+            throw new ValidationError('Cannot delete pipeline with active candidates');
         }
 
         await prisma.pipelineStage.deleteMany({ where: { pipelineTemplateId: pipelineId } });
@@ -78,7 +79,7 @@ export class PipelineService {
 
     async reorderStages(tenantId: string, pipelineId: string, stageOrder: { stageId: string; orderIndex: number }[]) {
         const pipeline = await prisma.pipelineTemplate.findFirst({ where: { id: pipelineId, tenantId } });
-        if (!pipeline) throw { statusCode: 404, message: 'Pipeline not found' };
+        if (!pipeline) throw new NotFoundError('Pipeline not found');
 
         // Use a transaction to update all stage orders atomically
         // First set all to negative to avoid unique constraint violations
@@ -105,7 +106,7 @@ export class PipelineService {
 
     async addStage(tenantId: string, pipelineId: string, data: { name: string; orderIndex: number; slaHours?: number; stageType?: string }) {
         const pipeline = await prisma.pipelineTemplate.findFirst({ where: { id: pipelineId, tenantId } });
-        if (!pipeline) throw { statusCode: 404, message: 'Pipeline not found' };
+        if (!pipeline) throw new NotFoundError('Pipeline not found');
 
         return prisma.pipelineStage.create({
             data: {
@@ -121,11 +122,11 @@ export class PipelineService {
 
     async deleteStage(tenantId: string, stageId: string) {
         const stage = await prisma.pipelineStage.findFirst({ where: { id: stageId, tenantId } });
-        if (!stage) throw { statusCode: 404, message: 'Stage not found' };
+        if (!stage) throw new NotFoundError('Stage not found');
 
         const candidateCount = await prisma.candidate.count({ where: { currentStageId: stageId } });
         if (candidateCount > 0) {
-            throw { statusCode: 400, message: 'Cannot delete stage with active candidates' };
+            throw new ValidationError('Cannot delete stage with active candidates');
         }
 
         await prisma.pipelineStage.delete({ where: { id: stageId } });
@@ -137,6 +138,6 @@ export class PipelineService {
             const executor = new BackgroundCheckStageExecutor();
             return await executor.executeStage(candidateId, tenantId);
         }
-        throw new Error('Unsupported automated stage');
+        throw new ValidationError('Unsupported automated stage');
     }
 }

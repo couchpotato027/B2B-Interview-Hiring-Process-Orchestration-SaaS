@@ -1,27 +1,18 @@
-import express from 'express';
-import cors from 'cors';
-import { logger } from './infrastructure/logger';
-import { errorHandler } from './shared/middlewares/errorHandler.middleware';
-import routes from './routes';
+/**
+ * @deprecated — DO NOT USE
+ *
+ * This file was the original standalone module-based server.
+ * It has been superseded by the unified server architecture.
+ *
+ * The application now starts from:
+ *   src/index.ts  →  src/presentation/server.ts
+ *
+ * That single server mounts:
+ *   • Module routes  (/api/v1/*)  from src/routes.ts
+ *   • Clean-arch API (/api/*)     from src/presentation/routes/index.ts
+ *
+ * This file is intentionally left as a marker.
+ * It is safe to delete once the migration is confirmed stable.
+ */
 
-const app = express();
-
-app.use(cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json());
-
-// Main API Routes
-app.use(routes);
-
-// Global Error Handling
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-    logger.info(`Server is running on port ${PORT}`);
-});
+export {};

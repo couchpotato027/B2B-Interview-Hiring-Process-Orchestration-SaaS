@@ -1,5 +1,6 @@
 import { prisma } from '../../../infrastructure/database/prisma.client';
-import { logger } from '../../../infrastructure/logger';
+import { logger } from '../../../infrastructure/logging/logger';
+import { ValidationError } from '../../../shared/errors/DomainErrors';
 
 export abstract class PipelineStageExecutor {
     // Template Method: Defines the skeleton of the algorithm
@@ -8,7 +9,7 @@ export abstract class PipelineStageExecutor {
 
         try {
             if (!(await this.validatePrerequisites(candidateId, tenantId))) {
-                throw new Error('Prerequisites not met for this stage');
+                throw new ValidationError('Prerequisites not met for this stage');
             }
 
             const success = await this.performStageLogic(candidateId, tenantId);

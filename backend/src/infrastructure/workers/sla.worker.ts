@@ -2,9 +2,12 @@ import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { prisma } from '../database/prisma.client';
 import { NotificationEventBus, SlackAlertObserver, EmailAlertObserver } from '../../modules/notification/patterns/notification.observer';
-import { logger } from '../logger';
+import { logger } from '../logging/logger';
 
-const redisConnection = new IORedis(process.env.REDIS_URL || 'redis://127.0.0.1:6379');
+// BullMQ workers require maxRetriesPerRequest: null for blocking commands.
+const redisConnection = new IORedis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
+    maxRetriesPerRequest: null,
+});
 
 // Initialize Observers
 const eventBus = NotificationEventBus.getInstance();

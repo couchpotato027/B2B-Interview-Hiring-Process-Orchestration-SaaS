@@ -4,4 +4,5 @@ import type { IRepository } from './IRepository';
 export interface IEvaluationRepository extends IRepository<Evaluation> {
   findByJobId(jobId: string): Promise<Evaluation[]>;
   findByCandidateId(candidateId: string): Promise<Evaluation[]>;
+  findByCandidateAndJob(candidateId: string, jobId: string): Promise<Evaluation | null>;
 }

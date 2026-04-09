@@ -1,5 +1,6 @@
 import { prisma } from '../../../infrastructure/database/prisma.client';
 import { Candidate } from '@prisma/client';
+import { ConflictError } from '../../../shared/errors/DomainErrors';
 
 export interface ICandidateState {
     enterState(candidate: Candidate, tenantId: string): Promise<void>;
@@ -70,15 +71,15 @@ export class RejectedState implements ICandidateState {
     }
 
     async nextStage(candidate: Candidate, tenantId: string, nextStageId: string): Promise<void> {
-        throw new Error('Cannot advance a candidate that has been rejected.');
+        throw new ConflictError('Cannot advance a candidate that has been rejected.');
     }
 
     async reject(candidate: Candidate, tenantId: string, reason?: string): Promise<void> {
-        throw new Error('Candidate is already rejected.');
+        throw new ConflictError('Candidate is already rejected.');
     }
 
     async hire(candidate: Candidate, tenantId: string): Promise<void> {
-        throw new Error('Cannot hire a rejected candidate.');
+        throw new ConflictError('Cannot hire a rejected candidate.');
     }
 }
 
@@ -91,14 +92,14 @@ export class HiredState implements ICandidateState {
     }
 
     async nextStage(candidate: Candidate, tenantId: string, nextStageId: string): Promise<void> {
-        throw new Error('Cannot advance a hired candidate.');
+        throw new ConflictError('Cannot advance a hired candidate.');
     }
 
     async reject(candidate: Candidate, tenantId: string, reason?: string): Promise<void> {
-        throw new Error('Cannot reject a hired candidate.');
+        throw new ConflictError('Cannot reject a hired candidate.');
     }
 
     async hire(candidate: Candidate, tenantId: string): Promise<void> {
-        throw new Error('Candidate is already hired.');
+        throw new ConflictError('Candidate is already hired.');
     }
 }

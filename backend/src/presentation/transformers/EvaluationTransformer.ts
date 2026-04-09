@@ -1,0 +1,37 @@
+import { Evaluation } from '../../domain/entities/Evaluation';
+
+export interface EvaluationDTO {
+  id: string;
+  candidateId: string;
+  jobId: string;
+  skillMatchScore: number;
+  experienceScore: number;
+  projectRelevanceScore: number;
+  overallScore: number;
+  strengths: string[];
+  weaknesses: string[];
+  recommendation: string;
+  evaluatedAt: string;
+}
+
+export class EvaluationTransformer {
+  public static toDTO(evaluation: Evaluation): EvaluationDTO {
+    return {
+      id: evaluation.getId(),
+      candidateId: evaluation.getCandidateId(),
+      jobId: evaluation.getJobId(),
+      skillMatchScore: evaluation.getSkillMatchScore(),
+      experienceScore: evaluation.getExperienceScore(),
+      projectRelevanceScore: evaluation.getProjectRelevanceScore(),
+      overallScore: evaluation.getOverallScore(),
+      strengths: evaluation.getStrengths(),
+      weaknesses: evaluation.getWeaknesses(),
+      recommendation: evaluation.getRecommendation(),
+      evaluatedAt: evaluation.getEvaluatedAt().toISOString(),
+    };
+  }
+
+  public static toCollectionDTO(evaluations: Evaluation[]): EvaluationDTO[] {
+    return evaluations.map(e => this.toDTO(e));
+  }
+}

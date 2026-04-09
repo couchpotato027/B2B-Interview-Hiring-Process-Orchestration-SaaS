@@ -7,10 +7,8 @@ export interface AppConfigValues {
   nodeEnv: 'development' | 'test' | 'production';
   corsOrigin: string;
   logLevel: string;
-  claudeApiKey: string;
-  anthropicApiKey: string;
-  anthropicTimeoutMs: number;
-  anthropicMaxRetries: number;
+  geminiApiKey: string;
+  geminiModel: string;
 }
 
 const parsePositiveInteger = (value: string | undefined, fallback: number, key: string): number => {
@@ -32,25 +30,14 @@ export class AppConfig {
   public static load(): AppConfigValues {
     if (!AppConfig.instance) {
       const nodeEnv = (process.env.NODE_ENV ?? 'development') as AppConfigValues['nodeEnv'];
-      const claudeApiKey = process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY ?? '';
 
       AppConfig.instance = {
         port: parsePositiveInteger(process.env.PORT, 3001, 'PORT'),
         nodeEnv,
         corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
         logLevel: process.env.LOG_LEVEL ?? 'info',
-        claudeApiKey,
-        anthropicApiKey: claudeApiKey,
-        anthropicTimeoutMs: parsePositiveInteger(
-          process.env.ANTHROPIC_TIMEOUT_MS,
-          15000,
-          'ANTHROPIC_TIMEOUT_MS',
-        ),
-        anthropicMaxRetries: parsePositiveInteger(
-          process.env.ANTHROPIC_MAX_RETRIES,
-          3,
-          'ANTHROPIC_MAX_RETRIES',
-        ),
+        geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+        geminiModel: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
       };
     }
 
@@ -64,8 +51,8 @@ export class AppConfig {
       throw new Error(`Invalid NODE_ENV value: ${config.nodeEnv}`);
     }
 
-    if (!config.claudeApiKey.trim()) {
-      throw new Error('CLAUDE_API_KEY is required.');
+    if (config.nodeEnv === 'production' && !config.geminiApiKey.trim()) {
+      throw new Error('GEMINI_API_KEY is required in production.');
     }
   }
 }

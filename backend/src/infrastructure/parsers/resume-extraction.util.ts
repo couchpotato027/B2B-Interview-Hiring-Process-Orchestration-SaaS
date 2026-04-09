@@ -170,10 +170,17 @@ const extractProjects = (text: string): ParsedResumeProject[] | undefined => {
         return null;
       }
 
-      return {
+      const technologies = COMMON_SKILLS.filter((skill) =>
+        new RegExp(`\\b${escapeRegExp(skill)}\\b`, 'i').test(entry),
+      );
+
+      const project: ParsedResumeProject = {
         title,
         description,
+        technologies: technologies.length > 0 ? technologies : undefined,
       };
+
+      return project;
     })
     .filter((project): project is ParsedResumeProject => project !== null);
 

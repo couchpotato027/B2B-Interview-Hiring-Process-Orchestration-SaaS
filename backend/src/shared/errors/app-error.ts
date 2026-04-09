@@ -1,11 +1,23 @@
 export class AppError extends Error {
   constructor(
-    message: string,
-    public readonly statusCode: number,
+    public readonly message: string,
+    public readonly statusCode: number = 500,
+    public readonly code: string = 'INTERNAL_SERVER_ERROR',
     public readonly details?: unknown,
-    public readonly code: string = 'APP_ERROR',
   ) {
     super(message);
-    this.name = 'AppError';
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+
+  public toJSON() {
+    return {
+      success: false,
+      error: {
+        message: this.message,
+        code: this.code,
+        details: this.details,
+      },
+    };
   }
 }

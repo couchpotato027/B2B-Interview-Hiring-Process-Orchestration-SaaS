@@ -43,3 +43,25 @@ export interface CandidateRankedEvent extends DomainEvent {
     timestamp: Date;
   };
 }
+
+export interface PipelineCreatedEvent extends DomainEvent {
+  eventType: 'PipelineCreatedEvent';
+  payload: {
+    pipelineId: string;
+    jobId: string;
+    name: string;
+    timestamp: Date;
+  };
+}
+
+export interface CandidateMovedStageEvent extends DomainEvent {
+  eventType: 'CandidateMovedStageEvent';
+  payload: {
+    candidateId: string;
+    pipelineId: string;
+    fromStageId: string | null;
+    toStageId: string;
+    movedBy: string;
+    timestamp: Date;
+  };
+}

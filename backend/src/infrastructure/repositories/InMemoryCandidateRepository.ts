@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import type { Candidate } from '../../domain/entities/Candidate';
-import type { ICandidateRepository } from '../../domain/repositories/ICandidateRepository';
+import type { CandidateFilters, ICandidateRepository } from '../../domain/repositories/ICandidateRepository';
+import type { PaginatedResult } from '../../domain/types/Pagination';
 
 export class InMemoryCandidateRepository implements ICandidateRepository {
   private readonly store = new Map<string, Candidate>();
@@ -23,6 +24,38 @@ export class InMemoryCandidateRepository implements ICandidateRepository {
     }
 
     return null;
+  }
+
+  public async findWithFilters(filters: CandidateFilters): Promise<PaginatedResult<Candidate>> {
+    const { page, limit, status, tenantId } = filters;
+    let candidates = Array.from(this.store.values());
+
+    // Applying filters
+    if (tenantId) {
+      candidates = candidates.filter((c) => c.getTenantId() === tenantId);
+    }
+
+    if (status) {
+      candidates = candidates.filter((c) => c.getStatus() === status);
+    }
+
+    const total = candidates.length;
+    const totalPages = Math.ceil(total / limit);
+    const skip = (page - 1) * limit;
+
+    const items = candidates.slice(skip, skip + limit);
+
+    return {
+      items,
+      metadata: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
   }
 
   public async save(entity: Candidate): Promise<Candidate> {

@@ -2,6 +2,7 @@ export type JobStatus = 'open' | 'closed';
 
 export interface JobProps {
   id: string;
+  tenantId: string;
   title: string;
   department: string;
   description: string;
@@ -13,6 +14,7 @@ export interface JobProps {
 
 export class Job {
   private readonly id: string;
+  private readonly tenantId: string;
   private title: string;
   private department: string;
   private description: string;
@@ -23,6 +25,7 @@ export class Job {
 
   constructor(props: JobProps) {
     this.id = Job.requireNonEmpty(props.id, 'Job id is required.');
+    this.tenantId = Job.requireNonEmpty(props.tenantId, 'Tenant id is required.');
     this.title = Job.requireNonEmpty(props.title, 'Job title is required.');
     this.department = Job.requireNonEmpty(props.department, 'Department is required.');
     this.description = Job.requireNonEmpty(props.description, 'Description is required.');
@@ -34,6 +37,10 @@ export class Job {
 
   public getId(): string {
     return this.id;
+  }
+  
+  public getTenantId(): string {
+    return this.tenantId;
   }
 
   public getTitle(): string {

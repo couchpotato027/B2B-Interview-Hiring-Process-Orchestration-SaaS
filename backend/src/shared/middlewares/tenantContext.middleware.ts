@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { logger } from '../../infrastructure/logger';
+import { logger } from '../../infrastructure/logging/logger';
 
 export interface AppRequest extends Request {
     user?: {

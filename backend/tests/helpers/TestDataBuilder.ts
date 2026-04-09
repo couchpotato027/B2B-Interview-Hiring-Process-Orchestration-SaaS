@@ -8,6 +8,7 @@ import { Resume } from '../../src/domain/entities/Resume';
 export class TestDataBuilder {
   public static candidate(overrides: Partial<{
     id: string;
+    tenantId: string;
     name: string;
     email: string;
     phone: string;
@@ -20,6 +21,7 @@ export class TestDataBuilder {
   }> = {}): Candidate {
     return new Candidate({
       id: overrides.id ?? randomUUID(),
+      tenantId: overrides.tenantId ?? 'org-123',
       name: overrides.name ?? 'Jane Doe',
       email: overrides.email ?? 'jane.doe@example.com',
       phone: overrides.phone ?? '1234567890',
@@ -42,6 +44,7 @@ export class TestDataBuilder {
 
   public static job(overrides: Partial<{
     id: string;
+    tenantId: string;
     title: string;
     department: string;
     description: string;
@@ -52,6 +55,7 @@ export class TestDataBuilder {
   }> = {}): Job {
     return new Job({
       id: overrides.id ?? randomUUID(),
+      tenantId: overrides.tenantId ?? 'org-123',
       title: overrides.title ?? 'Backend Engineer',
       department: overrides.department ?? 'Engineering',
       description: overrides.description ?? 'Build backend services',

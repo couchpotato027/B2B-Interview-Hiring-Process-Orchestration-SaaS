@@ -1,5 +1,5 @@
 import { SlaAlert } from '@prisma/client';
-import { logger } from '../../../infrastructure/logger';
+import { logger } from '../../../infrastructure/logging/logger';
 
 export interface NotificationEvent {
     type: string;

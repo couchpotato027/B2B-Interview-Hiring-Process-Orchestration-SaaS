@@ -1,4 +1,5 @@
 import { prisma } from '../../infrastructure/database/prisma.client';
+import { NotFoundError } from '../../shared/errors/DomainErrors';
 import { ScorecardAggregator, ConsensusDrivenStrategy } from './patterns/evaluation.strategy';
 
 export class EvaluationService {
@@ -50,7 +51,7 @@ export class EvaluationService {
             where: { tenantId, candidateId },
         });
 
-        if (evaluations.length === 0) throw new Error('No evaluations found');
+        if (evaluations.length === 0) throw new NotFoundError('No evaluations found');
 
         // Strategy Pattern usage
         const aggregator = new ScorecardAggregator(new ConsensusDrivenStrategy());

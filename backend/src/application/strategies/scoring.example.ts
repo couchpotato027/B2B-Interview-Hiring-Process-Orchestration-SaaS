@@ -26,6 +26,7 @@ export const defaultScoringExample = async () => {
         technologies: ['React', 'Docker'],
       },
     ],
+    tenantId: 'org-123',
     status: 'active',
   });
 
@@ -37,6 +38,7 @@ export const defaultScoringExample = async () => {
     requiredSkills: ['TypeScript', 'Node.js', 'PostgreSQL'],
     preferredSkills: ['Docker', 'Redis'],
     requiredExperience: 3,
+    tenantId: 'org-123',
     status: 'open',
   });
 
@@ -62,6 +64,7 @@ export const customScoringExample = async () => {
         technologies: ['TypeScript', 'Express'],
       },
     ],
+    tenantId: 'org-123',
     status: 'active',
   });
 
@@ -73,6 +76,7 @@ export const customScoringExample = async () => {
     requiredSkills: ['TypeScript', 'Express', 'Docker'],
     preferredSkills: ['Kubernetes'],
     requiredExperience: 3,
+    tenantId: 'org-123',
     status: 'open',
   });
 

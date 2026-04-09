@@ -22,3 +22,36 @@ export interface FitEvaluation {
   reasoning: string;
   keyPoints: string[];
 }
+
+export interface ComparativeInsights {
+  strongestCandidateId: string;
+  rankings: Array<{
+    candidateId: string;
+    rank: number;
+    differentiator: string;
+  }>;
+  skillGapAnalysis: string;
+  summary: string;
+}
+
+export interface MarketInsights {
+  skillDemand: Array<{
+    skill: string;
+    demandLevel: 'high' | 'medium' | 'low';
+  }>;
+  suggestedSalaryRange: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+  similarJobTitles: string[];
+  interviewQuestions: string[];
+}
+
+export interface ResumeFeedback {
+  strengths: string[];
+  improvements: string[];
+  missingKeywords: string[];
+  formattingSuggestions: string[];
+  overallScore: number;
+}

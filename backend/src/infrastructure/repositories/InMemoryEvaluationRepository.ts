@@ -23,6 +23,14 @@ export class InMemoryEvaluationRepository implements IEvaluationRepository {
     );
   }
 
+  public async findByCandidateAndJob(candidateId: string, jobId: string): Promise<Evaluation | null> {
+    return (
+      Array.from(this.store.values()).find(
+        (evaluation) => evaluation.getCandidateId() === candidateId && evaluation.getJobId() === jobId,
+      ) ?? null
+    );
+  }
+
   public async save(entity: Evaluation): Promise<Evaluation> {
     const evaluation = this.ensureEntityId(entity);
     this.store.set(evaluation.getId(), evaluation);

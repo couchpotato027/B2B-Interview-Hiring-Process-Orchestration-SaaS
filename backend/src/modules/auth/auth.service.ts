@@ -1,6 +1,7 @@
 import { prisma } from '../../infrastructure/database/prisma.client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { NotFoundError, UnauthorizedError, ValidationError } from '../../shared/errors/DomainErrors';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 const EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
@@ -49,10 +50,10 @@ export class AuthService {
             include: { role: true },
         });
 
-        if (!user) throw { statusCode: 401, message: 'Invalid credentials' };
+        if (!user) throw new UnauthorizedError('Invalid credentials');
 
         const isMatch = await bcrypt.compare(password, user.passwordHash);
-        if (!isMatch) throw { statusCode: 401, message: 'Invalid credentials' };
+        if (!isMatch) throw new UnauthorizedError('Invalid credentials');
 
         const payload = {
             id: user.id,
@@ -70,7 +71,7 @@ export class AuthService {
             where: { id: userId },
             include: { role: true, tenant: { select: { id: true, name: true } } },
         });
-        if (!user) throw { statusCode: 404, message: 'User not found' };
+        if (!user) throw new NotFoundError('User not found');
 
         return {
             id: user.id,
@@ -93,10 +94,10 @@ export class AuthService {
 
     async createUser(tenantId: string, data: { email: string; password: string; firstName?: string; lastName?: string; roleName: string }) {
         const role = await prisma.role.findFirst({ where: { tenantId, name: data.roleName } });
-        if (!role) throw { statusCode: 400, message: `Role ${data.roleName} not found` };
+        if (!role) throw new ValidationError(`Role ${data.roleName} not found`);
 
         const existing = await prisma.user.findFirst({ where: { tenantId, email: data.email } });
-        if (existing) throw { statusCode: 400, message: 'User with this email already exists' };
+        if (existing) throw new ValidationError('User with this email already exists');
 
         const hashedPassword = await bcrypt.hash(data.password, 10);
 

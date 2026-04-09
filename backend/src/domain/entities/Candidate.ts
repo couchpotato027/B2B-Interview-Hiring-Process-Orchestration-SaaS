@@ -13,6 +13,7 @@ export interface CandidateProps {
   name: string;
   email: string;
   phone: string;
+  tenantId: string;
   resumeId: string;
   skills: string[];
   yearsOfExperience: number;
@@ -26,6 +27,7 @@ export class Candidate {
   private name: string;
   private email: Email;
   private phone: string;
+  private tenantId: string;
   private resumeId: string;
   private skills: string[];
   private yearsOfExperience: number;
@@ -41,6 +43,7 @@ export class Candidate {
     this.name = props.name.trim();
     this.email = new Email(props.email);
     this.phone = Candidate.requireNonEmpty(props.phone, 'Candidate phone is required.');
+    this.tenantId = Candidate.requireNonEmpty(props.tenantId, 'Tenant id is required.');
     this.resumeId = Candidate.requireNonEmpty(props.resumeId, 'Resume id is required.');
     this.skills = Candidate.normalizeSkills(props.skills);
     this.yearsOfExperience = props.yearsOfExperience;
@@ -67,6 +70,10 @@ export class Candidate {
 
   public getResumeId(): string {
     return this.resumeId;
+  }
+
+  public getTenantId(): string {
+    return this.tenantId;
   }
 
   public getSkills(): string[] {

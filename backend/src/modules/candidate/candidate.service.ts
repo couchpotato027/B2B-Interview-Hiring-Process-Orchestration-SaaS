@@ -1,5 +1,6 @@
 import { prisma } from '../../infrastructure/database/prisma.client';
 import { CandidateContext, ActiveState, RejectedState, HiredState } from './patterns/candidate.state';
+import { NotFoundError } from '../../shared/errors/DomainErrors';
 import { scheduleSlaCheck, cancelSlaCheck } from '../../infrastructure/queue/bullmq.setup';
 
 export class CandidateService {
@@ -66,13 +67,13 @@ export class CandidateService {
                 slaAlerts: { orderBy: { createdAt: 'desc' } },
             },
         });
-        if (!candidate) throw { statusCode: 404, message: 'Candidate not found' };
+        if (!candidate) throw new NotFoundError('Candidate not found');
         return candidate;
     }
 
     async updateCandidate(tenantId: string, candidateId: string, data: { firstName?: string; lastName?: string; email?: string; resumeUrl?: string }) {
         const candidate = await prisma.candidate.findFirst({ where: { id: candidateId, tenantId } });
-        if (!candidate) throw { statusCode: 404, message: 'Candidate not found' };
+        if (!candidate) throw new NotFoundError('Candidate not found');
 
         return prisma.candidate.update({
             where: { id: candidateId },
@@ -83,7 +84,7 @@ export class CandidateService {
 
     async deleteCandidate(tenantId: string, candidateId: string) {
         const candidate = await prisma.candidate.findFirst({ where: { id: candidateId, tenantId } });
-        if (!candidate) throw { statusCode: 404, message: 'Candidate not found' };
+        if (!candidate) throw new NotFoundError('Candidate not found');
 
         await prisma.candidate.delete({ where: { id: candidateId } });
         return { success: true };
@@ -94,7 +95,7 @@ export class CandidateService {
             where: { id: candidateId, tenantId },
         });
 
-        if (!candidate) throw new Error('Candidate not found');
+        if (!candidate) throw new NotFoundError('Candidate not found');
 
         // Cancel existing SLA check for old stage
         if (candidate.currentStageId) {
@@ -125,7 +126,7 @@ export class CandidateService {
             where: { id: candidateId, tenantId },
         });
 
-        if (!candidate) throw new Error('Candidate not found');
+        if (!candidate) throw new NotFoundError('Candidate not found');
 
         // Cancel SLA check
         if (candidate.currentStageId) {
@@ -145,7 +146,7 @@ export class CandidateService {
             where: { id: candidateId, tenantId },
         });
 
-        if (!candidate) throw new Error('Candidate not found');
+        if (!candidate) throw new NotFoundError('Candidate not found');
 
         // Cancel SLA check
         if (candidate.currentStageId) {

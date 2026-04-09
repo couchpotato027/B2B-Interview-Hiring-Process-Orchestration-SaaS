@@ -18,6 +18,7 @@ import type { Result } from '../../shared/Result';
 export interface ProcessResumeInput {
   file: Buffer;
   fileName: string;
+  tenantId: string;
   candidateEmail?: string;
 }
 
@@ -66,8 +67,8 @@ export class ProcessResumeUseCase {
 
       const existingCandidate = await this.dependencies.candidateRepository.findByEmail(resolvedEmail);
       const candidate = existingCandidate
-        ? this.buildUpdatedCandidate(existingCandidate, parsedResumeData, mergedSkills, resolvedEmail)
-        : this.buildNewCandidate(parsedResumeData, mergedSkills, resolvedEmail);
+        ? this.buildUpdatedCandidate(existingCandidate, parsedResumeData, mergedSkills, resolvedEmail, input.tenantId)
+        : this.buildNewCandidate(parsedResumeData, mergedSkills, resolvedEmail, input.tenantId);
 
       const savedCandidate = existingCandidate
         ? await this.dependencies.candidateRepository.update(existingCandidate.getId(), candidate)
@@ -140,12 +141,14 @@ export class ProcessResumeUseCase {
     parsedResumeData: ParsedResumeData,
     skills: string[],
     email: string,
+    tenantId: string,
   ): Candidate {
     return new Candidate({
       id: randomUUID(),
       name: parsedResumeData.name?.trim() || this.getNameFromEmail(email),
       email,
       phone: parsedResumeData.phone?.trim() || 'Not provided',
+      tenantId,
       resumeId: randomUUID(),
       skills,
       yearsOfExperience: this.parseYearsOfExperience(parsedResumeData.experience),
@@ -160,12 +163,14 @@ export class ProcessResumeUseCase {
     parsedResumeData: ParsedResumeData,
     skills: string[],
     email: string,
+    tenantId: string,
   ): Candidate {
     return new Candidate({
       id: existingCandidate.getId(),
       name: parsedResumeData.name?.trim() || existingCandidate.getName(),
       email,
       phone: parsedResumeData.phone?.trim() || existingCandidate.getPhone(),
+      tenantId,
       resumeId: existingCandidate.getResumeId(),
       skills: this.mergeSkills(existingCandidate.getSkills(), skills),
       yearsOfExperience: Math.max(
@@ -191,7 +196,7 @@ export class ProcessResumeUseCase {
     return (projects ?? []).map((project) => ({
       title: project.title,
       description: project.description,
-      technologies: [],
+      technologies: project.technologies ?? [],
     }));
   }
 
@@ -210,7 +215,7 @@ export class ProcessResumeUseCase {
         projectMap.set(project.title.toLowerCase(), {
           title: project.title,
           description: project.description,
-          technologies: [],
+          technologies: project.technologies ?? [],
         });
       }
     }

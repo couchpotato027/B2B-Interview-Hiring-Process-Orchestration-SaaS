@@ -1,4 +1,5 @@
 import { prisma } from '../../infrastructure/database/prisma.client';
+import { NotFoundError } from '../../shared/errors/DomainErrors';
 
 export class InterviewService {
     async scheduleInterview(tenantId: string, data: { candidateId: string; stageId: string; interviewerId: string; scheduledAt: string; notes?: string }) {
@@ -37,7 +38,7 @@ export class InterviewService {
 
     async updateInterview(tenantId: string, interviewId: string, data: { scheduledAt?: string; feedbackStatus?: string; notes?: string }) {
         const interview = await prisma.interview.findFirst({ where: { id: interviewId, tenantId } });
-        if (!interview) throw { statusCode: 404, message: 'Interview not found' };
+        if (!interview) throw new NotFoundError('Interview not found');
 
         return prisma.interview.update({
             where: { id: interviewId },

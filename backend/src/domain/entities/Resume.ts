@@ -3,6 +3,7 @@ import { Email } from '../value-objects/Email';
 export interface ParsedResumeProject {
   title: string;
   description: string;
+  technologies?: string[];
 }
 
 export interface ParsedResumeData {
@@ -92,6 +93,7 @@ export class Resume {
       projects: data.projects?.map((project) => ({
         title: Resume.requireNonEmpty(project.title, 'Project title is required.'),
         description: Resume.requireNonEmpty(project.description, 'Project description is required.'),
+        technologies: project.technologies ? Resume.normalizeSkills(project.technologies) : [],
       })),
     });
   }
@@ -102,6 +104,7 @@ export class Resume {
       skills: data.skills ? [...data.skills] : undefined,
       projects: data.projects?.map((project) => ({
         ...project,
+        technologies: project.technologies ? [...project.technologies] : undefined,
       })),
     };
   }

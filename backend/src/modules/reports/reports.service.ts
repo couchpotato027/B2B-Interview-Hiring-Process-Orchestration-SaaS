@@ -24,7 +24,8 @@ export class ReportsService {
 
         const data = stages.map((s, i) => {
             const current = s._count.candidates;
-            const previous = i > 0 ? stages[i - 1]._count.candidates : current;
+            const prevStage = i > 0 ? stages[i - 1] : null;
+            const previous = prevStage ? prevStage._count.candidates : current;
             const dropoff = previous > 0 ? Math.round(((previous - current) / previous) * 100) : 0;
             return { stageName: s.name, candidates: current, dropoffRate: dropoff };
         });

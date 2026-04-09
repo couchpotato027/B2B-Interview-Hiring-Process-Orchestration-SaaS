@@ -5,6 +5,9 @@ import { EventEmitter, type EventHandler } from '../events/EventEmitter';
 import { DashboardMetricsObserver } from './DashboardMetricsObserver';
 import { EmailNotificationObserver } from './EmailNotificationObserver';
 import { SLAMonitorObserver } from './SLAMonitorObserver';
+import { StageTransitionObserver } from './StageTransitionObserver';
+import { AutoEmailObserver } from './AutoEmailObserver';
+import { SLATrackingObserver } from './SLATrackingObserver';
 
 export class ObserverRegistry {
   private readonly eventEmitter: EventEmitter;
@@ -20,9 +23,15 @@ export class ObserverRegistry {
     const emailNotificationObserver = new EmailNotificationObserver();
     const dashboardMetricsObserver = new DashboardMetricsObserver();
     const slaMonitorObserver = new SLAMonitorObserver(this.resumeRepository);
+    const stageTransitionObserver = new StageTransitionObserver();
+    const autoEmailObserver = new AutoEmailObserver();
+    const slaTrackingObserver = new SLATrackingObserver();
 
     this.registerObserver(emailNotificationObserver);
     this.registerObserver(slaMonitorObserver);
+    this.registerObserver(stageTransitionObserver);
+    this.registerObserver(autoEmailObserver);
+    this.registerObserver(slaTrackingObserver);
 
     for (const eventType of dashboardMetricsObserver.getSupportedEventTypes()) {
       this.registerObserverForEventType(dashboardMetricsObserver, eventType);

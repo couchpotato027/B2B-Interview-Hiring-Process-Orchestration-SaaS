@@ -1,4 +1,5 @@
 import { prisma } from '../../infrastructure/database/prisma.client';
+import { NotFoundError } from '../../shared/errors/DomainErrors';
 
 export class JobService {
     async createJob(tenantId: string, data: { title: string; department?: string; hiringManagerId?: string; pipelineTemplateId?: string }) {
@@ -38,13 +39,13 @@ export class JobService {
                 },
             },
         });
-        if (!job) throw { statusCode: 404, message: 'Job not found' };
+        if (!job) throw new NotFoundError('Job not found');
         return job;
     }
 
     async updateJob(tenantId: string, jobId: string, data: { title?: string; department?: string; hiringManagerId?: string; pipelineTemplateId?: string; status?: string }) {
         const job = await prisma.job.findFirst({ where: { id: jobId, tenantId } });
-        if (!job) throw { statusCode: 404, message: 'Job not found' };
+        if (!job) throw new NotFoundError('Job not found');
 
         return prisma.job.update({
             where: { id: jobId },
@@ -55,7 +56,7 @@ export class JobService {
 
     async archiveJob(tenantId: string, jobId: string) {
         const job = await prisma.job.findFirst({ where: { id: jobId, tenantId } });
-        if (!job) throw { statusCode: 404, message: 'Job not found' };
+        if (!job) throw new NotFoundError('Job not found');
 
         return prisma.job.update({
             where: { id: jobId },
