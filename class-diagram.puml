@@ -1,0 +1,297 @@
+@startuml HireFlow_ClassDiagram
+
+skinparam packageStyle rectangle
+skinparam class {
+    BackgroundColor White
+    ArrowColor #333333
+    BorderColor #666666
+}
+
+'----------------------------------------------
+' DOMAIN LAYER
+'----------------------------------------------
+package "Domain Layer" <<Rectangle>> #E8F5E9 {
+    
+    class Score <<ValueObject>> {
+        - value: int
+        + Score(value: int)
+        + getValue(): int
+    }
+    note right of Score
+      **Value Objects**
+      Immutable and strictly validated.
+    end note
+
+    class Email <<ValueObject>> {
+        - value: String
+        + Email(value: String)
+        + getValue(): String
+    }
+    
+    class User <<Entity>> {
+        + id: String
+        + email: Email
+        + passwordHash: String
+        + name: String
+        + role: String
+        + organizationId: String
+        + validatePassword(password: String): boolean
+        + updatePassword(newHash: String): void
+    }
+
+    class Candidate <<Entity>> {
+        + id: String
+        + name: String
+        + phone: String
+        + email: Email
+        + skills: String[]
+        + yearsOfExperience: int
+        + education: String
+        + projects: String[]
+        + status: String
+        + addSkill(skill: String): void
+        + updateStatus(status: String): void
+        + getSkills(): String[]
+    }
+
+    class Job <<Entity>> {
+        + id: String
+        + title: String
+        + department: String
+        + requiredSkills: String[]
+        + preferredSkills: String[]
+        + requiredExperience: int
+        + status: String
+        + addRequiredSkill(skill: String): void
+        + close(): void
+        + isOpen(): boolean
+    }
+
+    class Resume <<Entity>> {
+        + id: String
+        + candidateId: String
+        + fileName: String
+        + rawText: String
+        + parsedData: JSON
+        + uploadedAt: Date
+        + updateParsedData(data: JSON): void
+    }
+
+    class Evaluation <<Entity>> {
+        + id: String
+        + candidateId: String
+        + jobId: String
+        + skillMatchScore: Score
+        + experienceScore: Score
+        + projectRelevanceScore: Score
+        + overallScore: Score
+        + strengths: String[]
+        + weaknesses: String[]
+        + recommendation: String
+        + calculateOverallScore(): void
+    }
+
+    class Pipeline <<Entity>> {
+        + id: String
+        + name: String
+        + jobId: String
+        + stages: PipelineStage[]
+        + isActive: boolean
+        + addStage(stage: PipelineStage): void
+        + removeStage(stageId: String): void
+        + reorderStages(): void
+    }
+
+    class PipelineStage <<Entity>> {
+        + id: String
+        + name: String
+        + order: int
+        + type: String
+        + autoActions: String[]
+    }
+
+    class CandidatePipelineStatus <<Entity>> {
+        + id: String
+        + candidateId: String
+        + pipelineId: String
+        + currentStageId: String
+        + stageHistory: String[]
+        + moveToStage(stageId: String): void
+    }
+
+    ' Domain Relationships
+    Candidate "1" *-- "0..*" Resume : has-many
+    Candidate "1" -- "0..*" Evaluation : has-many
+    Job "1" -- "0..*" Evaluation : has-many
+    Job "1" *-- "1" Pipeline : has-one
+    Pipeline "1" *-- "1..*" PipelineStage : has-many
+    CandidatePipelineStatus "*" -- "1" Candidate : belongs-to
+    CandidatePipelineStatus "*" -- "1" Pipeline : belongs-to
+    CandidatePipelineStatus "*" -- "1" PipelineStage : belongs-to
+}
+
+'----------------------------------------------
+' APPLICATION LAYER
+'----------------------------------------------
+package "Application Layer" <<Rectangle>> #E3F2FD {
+
+    interface IRepository<T> <<Interface>> {
+        + findById(id: String): T
+        + findAll(): T[]
+        + save(entity: T): void
+        + update(entity: T): void
+        + delete(id: String): void
+    }
+    note right of IRepository
+      **Pattern: Repository**
+      Abstracts data persistence logic 
+      away from domain and application.
+    end note
+
+    interface ICandidateRepository <<Interface>> {
+        + findByEmail(email: String): Candidate
+    }
+    ICandidateRepository -up-|> IRepository : <<extends>>
+
+    interface IJobRepository <<Interface>> {
+        + findByStatus(status: String): Job[]
+    }
+    IJobRepository -up-|> IRepository : <<extends>>
+
+    interface IResumeRepository <<Interface>> {
+    }
+    IResumeRepository -up-|> IRepository : <<extends>>
+    
+    interface IEvaluationRepository <<Interface>> {
+    }
+    IEvaluationRepository -up-|> IRepository : <<extends>>
+
+    interface IAIService <<Interface>> {
+        + extractSkillsFromResume(resumeText: String): String[]
+        + analyzeProjectRelevance(projects: String[], jobReqs: String[]): Score
+        + generateCandidateInsights(candidate: Candidate, job: Job): String
+        + evaluateCandidateFit(candidate: Candidate, job: Job): JSON
+    }
+
+    interface IScoringStrategy <<Interface>> <<Pattern: Strategy>> {
+        + calculate(candidate: Candidate, job: Job): Score
+        + getName(): String
+        + getWeight(): float
+    }
+    
+    class ResumeParserFactory <<Pattern: Factory>> {
+        + createParser(fileType: String): IResumeParser
+    }
+
+    class CandidateScorer {
+        - strategies: IScoringStrategy[]
+        + score(candidate: Candidate, job: Job): Evaluation
+    }
+    CandidateScorer "1" o-- "0..*" IScoringStrategy : uses
+
+    class ProcessResumeUseCase {
+        - aiService: IAIService
+        - candidateRepo: ICandidateRepository
+        - resumeRepo: IResumeRepository
+        - parserFactory: ResumeParserFactory
+        + execute(candidateId: String, file: File): void
+    }
+
+    class EvaluateCandidateUseCase {
+        - candidateRepo: ICandidateRepository
+        - jobRepo: IJobRepository
+        - scorer: CandidateScorer
+        - aiService: IAIService
+        + execute(candidateId: String, jobId: String): Evaluation
+    }
+
+    class RankCandidatesForJobUseCase {
+        - evalRepo: IEvaluationRepository
+        - candidateRepo: ICandidateRepository
+        + execute(jobId: String): Candidate[]
+    }
+
+    ' Dependency Injections via Constructor Mapping
+    ProcessResumeUseCase ..> IAIService : <<depends>>
+    ProcessResumeUseCase ..> ICandidateRepository : <<depends>>
+    ProcessResumeUseCase ..> IResumeRepository : <<depends>>
+    ProcessResumeUseCase ..> ResumeParserFactory : <<depends>>
+    
+    EvaluateCandidateUseCase ..> ICandidateRepository : <<depends>>
+    EvaluateCandidateUseCase ..> IJobRepository : <<depends>>
+    EvaluateCandidateUseCase ..> CandidateScorer : <<depends>>
+    EvaluateCandidateUseCase ..> IAIService : <<depends>>
+    
+    RankCandidatesForJobUseCase ..> IEvaluationRepository : <<depends>>
+    RankCandidatesForJobUseCase ..> ICandidateRepository : <<depends>>
+}
+
+'----------------------------------------------
+' INFRASTRUCTURE LAYER
+'----------------------------------------------
+package "Infrastructure Layer" <<Rectangle>> #FFF3E0 {
+    
+    class SkillMatchStrategy <<Pattern: Strategy>> {
+        + calculate(c: Candidate, j: Job): Score
+        + getName(): String
+        + getWeight(): float
+    }
+    SkillMatchStrategy .up.|> IScoringStrategy : <<implements>>
+
+    class ExperienceMatchStrategy <<Pattern: Strategy>> {
+        + calculate(c: Candidate, j: Job): Score
+        + getName(): String
+        + getWeight(): float
+    }
+    ExperienceMatchStrategy .up.|> IScoringStrategy : <<implements>>
+
+    class ProjectRelevanceStrategy <<Pattern: Strategy>> {
+        + calculate(c: Candidate, j: Job): Score
+        + getName(): String
+        + getWeight(): float
+    }
+    ProjectRelevanceStrategy .up.|> IScoringStrategy : <<implements>>
+
+    class ClaudeAIService {
+        - apiKey: String
+        + extractSkillsFromResume(resumeText: String): String[]
+        + analyzeProjectRelevance(projects: String[], jobReqs: String[]): Score
+        + generateCandidateInsights(candidate: Candidate, job: Job): String
+        + evaluateCandidateFit(candidate: Candidate, job: Job): JSON
+    }
+    ClaudeAIService .up.|> IAIService : <<implements>>
+
+    class InMemoryCandidateRepository {
+        - db: Map<String, Candidate>
+        + findById(id: String): Candidate
+        + findAll(): Candidate[]
+        + save(entity: Candidate): void
+        + update(entity: Candidate): void
+        + delete(id: String): void
+        + findByEmail(email: String): Candidate
+    }
+    InMemoryCandidateRepository .up.|> ICandidateRepository : <<implements>>
+}
+
+'----------------------------------------------
+' PRESENTATION LAYER
+'----------------------------------------------
+package "Presentation Layer" <<Rectangle>> #F3E5F5 {
+    
+    class CandidateController {
+        - processResumeUseCase: ProcessResumeUseCase
+        + uploadResume(req: Request, res: Response): void
+    }
+    CandidateController ..> ProcessResumeUseCase : <<invokes>>
+
+    class EvaluationController {
+        - evaluateCandidateUseCase: EvaluateCandidateUseCase
+        - rankCandidatesUseCase: RankCandidatesForJobUseCase
+        + evaluate(req: Request, res: Response): void
+        + rank(req: Request, res: Response): void
+    }
+    EvaluationController ..> EvaluateCandidateUseCase : <<invokes>>
+    EvaluationController ..> RankCandidatesForJobUseCase : <<invokes>>
+}
+
+@enduml
