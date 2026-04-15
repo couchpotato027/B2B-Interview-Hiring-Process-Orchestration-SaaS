@@ -45,6 +45,8 @@ router.post('/login', async (req: Request, res: Response) => {
 
 router.get('/me', (req: Request, res: Response) => {
   const authReq = req as any;
+  
+  // If auth middleware already ran, use its data
   if (authReq.user) {
     return res.status(200).json({
       id: authReq.user.userId || authReq.user.id,
@@ -53,6 +55,26 @@ router.get('/me', (req: Request, res: Response) => {
       organizationId: authReq.user.organizationId || authReq.user.tenantId
     });
   }
+
+  // Otherwise, decode JWT manually (since /auth is before authMiddleware)
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const jwt = require('jsonwebtoken');
+      const secret = process.env.JWT_SECRET || 'super-secret-key-for-sdproject';
+      const decoded = jwt.verify(token, secret) as any;
+      return res.status(200).json({
+        id: decoded.userId || decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+        organizationId: decoded.organizationId || decoded.tenantId
+      });
+    } catch {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+  }
+
   return res.status(401).json({ message: 'Not authenticated' });
 });
 

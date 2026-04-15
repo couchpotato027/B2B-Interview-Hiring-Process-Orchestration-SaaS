@@ -12,6 +12,7 @@ import {
     DragStartEvent,
     DragOverEvent
 } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Toaster } from 'react-hot-toast';
 
 export function ClientDndContext({ 
