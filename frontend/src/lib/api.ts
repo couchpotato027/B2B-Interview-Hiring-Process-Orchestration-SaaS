@@ -6,8 +6,20 @@ export const API_BASE_URL = base.endsWith('/api/v1') ? base : `${base.replace(/\
 
 console.log('🌐 [HireFlow API] Initialized with Base URL:', API_BASE_URL);
 
+const apiCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 60000; // 60 seconds
+
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const isGet = !options.method || options.method === 'GET';
+
+    // 1. Return from cache if available and fresh
+    if (isGet && apiCache.has(endpoint)) {
+        const entry = apiCache.get(endpoint)!;
+        if (Date.now() - entry.timestamp < CACHE_TTL) {
+            return entry.data;
+        }
+    }
 
     const headers = new Headers(options.headers || {});
     headers.set('Content-Type', 'application/json');
@@ -24,6 +36,13 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     const data = await response.json();
     if (!response.ok) {
         throw new Error((data as { message?: string })?.message || 'API request failed');
+    }
+
+    // 2. Cache GET results, clear on mutations
+    if (isGet) {
+        apiCache.set(endpoint, { data, timestamp: Date.now() });
+    } else {
+        apiCache.clear(); // Clear everything on any POST/PUT/DELETE to ensure consistency
     }
 
     return data;
