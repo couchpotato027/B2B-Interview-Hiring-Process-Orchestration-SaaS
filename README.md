@@ -6,8 +6,6 @@ HireFlow is a production-grade, AI-assisted hiring pipeline system designed to s
 
 It integrates AI-driven resume parsing, candidate evaluation, and ranking while following Clean Architecture principles and modern full-stack practices.
 
-This project demonstrates strong software design concepts, scalability, and real-world system design.
-
 2. Key Features
 2.1 Core Functionality
 Intelligent Resume Parsing
