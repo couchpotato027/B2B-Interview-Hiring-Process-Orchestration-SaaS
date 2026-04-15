@@ -1,4 +1,7 @@
-const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+let base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+if (!base.startsWith('http')) {
+    base = `https://${base}`;
+}
 export const API_BASE_URL = base.endsWith('/api/v1') ? base : `${base.replace(/\/$/, '')}/api/v1`;
 
 console.log('🌐 [HireFlow API] Initialized with Base URL:', API_BASE_URL);
