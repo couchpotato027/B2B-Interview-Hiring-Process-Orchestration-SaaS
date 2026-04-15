@@ -1,6 +1,8 @@
 const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export const API_BASE_URL = base.endsWith('/api/v1') ? base : `${base.replace(/\/$/, '')}/api/v1`;
 
+console.log('🌐 [HireFlow API] Initialized with Base URL:', API_BASE_URL);
+
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
