@@ -8,7 +8,12 @@ const PORT = process.env.PORT || 3001;
 async function startServer() {
   try {
     console.log('📊 Starting HireFlow Bootloader...');
-    
+    // 0. Environment Check
+    console.log('🌍 Environment Check:');
+    console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? 'PRESENT (Masked)' : 'MISSING'}`);
+    console.log(`   JWT_SECRET:   ${process.env.JWT_SECRET ? 'PRESENT (Masked)' : 'MISSING'}`);
+
     // 1. Connect to Database
     console.log('📡 Connecting to PostgreSQL (Prisma)...');
     await prisma.$connect();
