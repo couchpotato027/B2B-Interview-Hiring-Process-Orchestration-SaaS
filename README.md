@@ -156,6 +156,8 @@ npm run dev
 Frontend: http://localhost:3000
 Backend: http://localhost:3001
 API Docs: http://localhost:3001/api-docs
+
+
 7. API Documentation
 
 Available at /api-docs
@@ -166,10 +168,14 @@ GET /api/v1/candidates
 POST /api/v1/evaluations
 GET /api/v1/pipelines/:id/board
 GET /api/v1/analytics/dashboard
+
+
 8. Testing
 npm run test
 npm run test:integration
 npm run test:coverage
+
+
 9. Software Design Principles
 SOLID Principles
 Single Responsibility
@@ -188,6 +194,8 @@ KISS
 YAGNI
 Separation of Concerns
 High Cohesion and Loose Coupling
+
+
 10. Project Achievements
 10+ database tables with relationships
 20+ API endpoints
@@ -199,9 +207,13 @@ Role-based access control
 Real-time updates
 Responsive UI
 80%+ test coverage
+
+
 11. License
 
 This project is created for academic purposes as part of a Software Design course.
+
+
 
 12. Acknowledgments
     
