@@ -9,7 +9,6 @@ import {
   SkillsReport, 
   HiringMetrics 
 } from '../../domain/types/Analytics';
-import { cacheService } from '../../infrastructure/cache/CacheService';
 
 export class AnalyticsService {
   constructor(
@@ -20,10 +19,10 @@ export class AnalyticsService {
     private readonly statusRepository: ICandidatePipelineStatusRepository
   ) {}
 
-  async calculateHiringMetrics(): Promise<HiringMetrics> {
-    const candidates = await this.candidateRepository.findAll();
-    const evaluations = await this.evaluationRepository.findAll();
-    const jobs = await this.jobRepository.findAll();
+  async calculateHiringMetrics(organizationId: string): Promise<HiringMetrics> {
+    const candidates = await this.candidateRepository.findAll(organizationId);
+    const evaluations = await this.evaluationRepository.findAll(organizationId);
+    const jobs = await this.jobRepository.findAll(organizationId);
 
     const activeCandidates = candidates.filter(c => c.getStatus() === 'active').length;
     
@@ -46,8 +45,8 @@ export class AnalyticsService {
     };
   }
 
-  async calculateHiringVelocity(jobId?: string): Promise<VelocityMetrics> {
-    // In a real system, we'd group by createdAt date.
+  async calculateHiringVelocity(organizationId: string, jobId?: string): Promise<VelocityMetrics> {
+    // Note: In a real system, we'd use organizationId to filter DB queries.
     // For now, returning mock trend data.
     return {
       candidatesAdded: [
@@ -66,11 +65,11 @@ export class AnalyticsService {
     };
   }
 
-  async calculateConversionFunnel(pipelineId: string): Promise<FunnelData> {
-    const pipeline = await this.pipelineRepository.findById(pipelineId);
+  async calculateConversionFunnel(pipelineId: string, organizationId: string): Promise<FunnelData> {
+    const pipeline = await this.pipelineRepository.findById(pipelineId, organizationId);
     if (!pipeline) throw new Error('Pipeline not found');
 
-    const statuses = await this.statusRepository.findByPipelineId(pipelineId);
+    const statuses = await this.statusRepository.findByPipelineId(pipelineId, organizationId);
     const stages = pipeline.getStages();
     
     let previousCount = statuses.length;
@@ -102,9 +101,9 @@ export class AnalyticsService {
     };
   }
 
-  async generateSkillsReport(): Promise<SkillsReport> {
-    const candidates = await this.candidateRepository.findAll();
-    const jobs = await this.jobRepository.findAll();
+  async generateSkillsReport(organizationId: string): Promise<SkillsReport> {
+    const candidates = await this.candidateRepository.findAll(organizationId);
+    const jobs = await this.jobRepository.findAll(organizationId);
 
     const candidateSkills = candidates.flatMap(c => c.getSkills());
     const jobSkills = jobs.flatMap(j => j.getRequiredSkills());

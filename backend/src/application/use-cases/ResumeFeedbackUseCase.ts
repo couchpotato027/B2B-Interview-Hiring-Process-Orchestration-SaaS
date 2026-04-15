@@ -12,9 +12,9 @@ export class ResumeFeedbackUseCase {
     private readonly aiService: IAIService
   ) {}
 
-  public async execute(input: { candidateId: string }): Promise<Result<ResumeFeedback>> {
+  public async execute(input: { candidateId: string; organizationId: string }): Promise<Result<ResumeFeedback>> {
     try {
-      const candidate = await this.candidateRepository.findById(input.candidateId);
+      const candidate = await this.candidateRepository.findById(input.candidateId, input.organizationId);
       if (!candidate) {
         return { success: false, error: 'Candidate not found', code: 'CANDIDATE_NOT_FOUND' };
       }
@@ -25,7 +25,7 @@ export class ResumeFeedbackUseCase {
         return { success: false, error: 'No resume found for this candidate', code: 'RESUME_NOT_FOUND' };
       }
 
-      const resume = await this.resumeRepository.findById(resumeId);
+      const resume = await this.resumeRepository.findById(resumeId, input.organizationId);
       if (!resume) {
         return { success: false, error: 'Resume record not found', code: 'RESUME_RECORD_NOT_FOUND' };
       }

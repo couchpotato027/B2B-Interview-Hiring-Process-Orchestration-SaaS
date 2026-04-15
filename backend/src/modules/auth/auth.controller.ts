@@ -15,11 +15,14 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
 };
 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
+    const { email, password } = req.body;
     try {
-        const { email, password } = req.body;
+        console.log(`[DEBUG] Login attempt for: ${email}`);
         const result = await authService.login(email, password);
+        console.log(`[DEBUG] Login SUCCESS for: ${email}`);
         res.status(200).json(result);
-    } catch (error) {
+    } catch (error: any) {
+        console.error(`[DEBUG] Login FAILED for: ${email} - Error: ${error.message}`);
         next(error);
     }
 };

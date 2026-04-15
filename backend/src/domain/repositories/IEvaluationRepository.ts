@@ -2,7 +2,7 @@ import type { Evaluation } from '../entities/Evaluation';
 import type { IRepository } from './IRepository';
 
 export interface IEvaluationRepository extends IRepository<Evaluation> {
-  findByJobId(jobId: string): Promise<Evaluation[]>;
-  findByCandidateId(candidateId: string): Promise<Evaluation[]>;
-  findByCandidateAndJob(candidateId: string, jobId: string): Promise<Evaluation | null>;
+  findByJobId(jobId: string, organizationId: string): Promise<Evaluation[]>;
+  findByCandidateId(candidateId: string, organizationId: string): Promise<Evaluation[]>;
+  findByCandidateAndJob(candidateId: string, jobId: string, organizationId: string): Promise<Evaluation | null>;
 }

@@ -1,18 +1,68 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { DropResult } from '@hello-pangea/dnd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+    DragEndEvent, 
+    DragStartEvent, 
+    DragOverEvent,
+    DragOverlay,
+    defaultDropAnimationSideEffects
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { ClientDndContext } from './ClientDndContext';
 import { KanbanColumn } from './KanbanColumn';
-import { pipelineApi, candidateApi } from '@/lib/api';
+import { pipelineApi, candidateApi, authApi } from '@/lib/api';
 import { BoardData, Candidate, Column } from './mockData';
 import { Layers } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { CandidateCard } from './CandidateCard';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import BulkActionsToolbar from '@/components/candidates/BulkActionsToolbar';
 
 export default function PipelineBoard() {
     const [data, setData] = useState<BoardData | null>(null);
     const [pipelines, setPipelines] = useState<{id: string; name: string}[]>([]);
     const [selectedPipelineId, setSelectedPipelineId] = useState<string>('');
     const [loading, setLoading] = useState(true);
+    const [activeCandidateId, setActiveCandidateId] = useState<string | null>(null);
+    const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
+    const [user, setUser] = useState<{ role?: string } | null>(null);
+
+    // Flat list of all candidates for selection hook
+    const allCandidates = Object.values(data?.candidates || {}).map(c => ({ id: c.id }));
+    const { 
+        selectedIds, 
+        isSelected, 
+        toggleSelect, 
+        toggleSelectAll, 
+        clearSelection,
+        handleShiftClick
+    } = useBulkSelection(allCandidates);
+
+    useEffect(() => {
+        authApi.getMe().then(setUser).catch(() => {});
+    }, []);
+
+    const canManageBoard = user?.role === 'ADMIN' || user?.role === 'RECRUITER';
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Cmd+A or Ctrl+A
+            if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+                e.preventDefault();
+                toggleSelectAll(allCandidates.map(c => c.id));
+            }
+            
+            // Escape
+            if (e.key === 'Escape') {
+                clearSelection();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [allCandidates, toggleSelectAll, clearSelection]);
 
     useEffect(() => {
         const loadPipelines = async () => {
@@ -28,92 +78,169 @@ export default function PipelineBoard() {
         loadPipelines();
     }, []);
 
-    useEffect(() => {
+    const loadBoard = useCallback(async () => {
         if (!selectedPipelineId) return;
-        const loadBoard = async () => {
-            try {
-                const pipeline = await pipelineApi.get(selectedPipelineId);
-                const stages = pipeline.stages || [];
-                const candidates: { id: string; firstName: string; lastName: string; email: string; currentStageId: string }[] = pipeline.candidates || [];
+        try {
+            const pipeline = await pipelineApi.get(selectedPipelineId);
+            const stages = pipeline.stages || [];
+            const candidates: { id: string; firstName: string; lastName: string; email: string; currentStageId: string }[] = pipeline.candidates || [];
 
-                // Build board data structure
-                const boardCandidates: Record<string, Candidate> = {};
-                candidates.forEach(c => {
-                    boardCandidates[c.id] = {
-                        id: c.id,
-                        name: `${c.firstName} ${c.lastName}`,
-                        role: c.email,
-                        avatar: c.firstName.charAt(0),
-                        score: 0,
-                    };
-                });
+            const boardCandidates: Record<string, Candidate> = {};
+            candidates.forEach(c => {
+                boardCandidates[c.id] = {
+                    id: c.id,
+                    name: `${c.firstName} ${c.lastName}`,
+                    role: c.email,
+                    avatar: c.firstName.charAt(0),
+                    score: 0,
+                };
+            });
 
-                const boardColumns: Record<string, Column> = {};
-                const columnOrder: string[] = [];
-                stages.forEach((s: { id: string; name: string }) => {
-                    const stageCandidates = candidates.filter(c => c.currentStageId === s.id).map(c => c.id);
-                    boardColumns[s.id] = {
-                        id: s.id,
-                        title: s.name,
-                        candidateIds: stageCandidates,
-                    };
-                    columnOrder.push(s.id);
-                });
+            const boardColumns: Record<string, Column> = {};
+            const columnOrder: string[] = [];
+            stages.sort((a: { orderIndex: number }, b: { orderIndex: number }) => a.orderIndex - b.orderIndex).forEach((s: { id: string; name: string }) => {
+                const stageCandidates = candidates.filter(c => c.currentStageId === s.id).map(c => c.id);
+                boardColumns[s.id] = {
+                    id: s.id,
+                    title: s.name,
+                    candidateIds: stageCandidates,
+                };
+                columnOrder.push(s.id);
+            });
 
-                setData({ candidates: boardCandidates, columns: boardColumns, columnOrder });
-            } catch (err) { console.error(err); }
-        };
-        loadBoard();
+            setData({ candidates: boardCandidates, columns: boardColumns, columnOrder });
+        } catch (err) { console.error(err); }
     }, [selectedPipelineId]);
 
-    const onDragEnd = async (result: DropResult) => {
-        const { destination, source, draggableId } = result;
-        if (!destination || !data) return;
-        if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+    useEffect(() => {
+        loadBoard();
+    }, [loadBoard]);
 
-        const startColumn = data.columns[source.droppableId];
-        const finishColumn = data.columns[destination.droppableId];
-
-        if (startColumn === finishColumn) {
-            const newCandidateIds = Array.from(startColumn.candidateIds);
-            newCandidateIds.splice(source.index, 1);
-            newCandidateIds.splice(destination.index, 0, draggableId);
-            setData({
-                ...data,
-                columns: { ...data.columns, [startColumn.id]: { ...startColumn, candidateIds: newCandidateIds } },
-            });
+    const handleDragStart = (event: DragStartEvent) => {
+        if (!canManageBoard) {
+            toast.error("You don't have permission to move candidates.");
             return;
         }
+        setActiveCandidateId(event.active.id as string);
+    };
 
-        // Optimistic update
-        const startCandidateIds = Array.from(startColumn.candidateIds);
-        startCandidateIds.splice(source.index, 1);
-        const finishCandidateIds = Array.from(finishColumn.candidateIds);
-        finishCandidateIds.splice(destination.index, 0, draggableId);
+    const handleDragOver = (event: DragOverEvent) => {
+        if (!canManageBoard) return;
+        const { active, over } = event;
+        if (!over || !data) return;
+
+        const activeId = active.id as string;
+        const overId = over.id as string;
+
+        if (activeId === overId) return;
+
+        const activeContainer = active.data.current?.sortable.containerId || activeId;
+        const overContainer = over.data.current?.sortable.containerId || overId;
+
+        if (!activeContainer || !overContainer || activeContainer === overContainer) return;
+
+        // Move item between containers in state (optimistic)
+        const activeItems = data.columns[activeContainer].candidateIds;
+        const overItems = data.columns[overContainer].candidateIds;
+        const overIndex = overItems.indexOf(overId);
+
+        let newIndex;
+        if (overId in data.columns) {
+            newIndex = overItems.length + 1;
+        } else {
+            const isAtEnd = overIndex === overItems.length - 1;
+            const modifier = isAtEnd ? 1 : 0;
+            newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length + 1;
+        }
 
         setData({
             ...data,
             columns: {
                 ...data.columns,
-                [startColumn.id]: { ...startColumn, candidateIds: startCandidateIds },
-                [finishColumn.id]: { ...finishColumn, candidateIds: finishCandidateIds },
+                [activeContainer]: {
+                    ...data.columns[activeContainer],
+                    candidateIds: activeItems.filter((item) => item !== activeId),
+                },
+                [overContainer]: {
+                    ...data.columns[overContainer],
+                    candidateIds: [
+                        ...overItems.slice(0, newIndex),
+                        activeId,
+                        ...overItems.slice(newIndex, overItems.length),
+                    ],
+                },
             },
         });
+    };
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        if (!canManageBoard) return;
+        const { active, over } = event;
+        setActiveCandidateId(null);
+
+        if (!over || !data) return;
+
+        const candidateId = active.id as string;
+        const overId = over.id as string;
+        
+        // Find which column it ended up in
+        const overContainer = over.data.current?.sortable.containerId || overId;
+        const activeContainer = active.data.current?.sortable.containerId || candidateId;
+
+        // Reorder within same column
+        if (activeContainer === overContainer) {
+            const items = data.columns[activeContainer].candidateIds;
+            const oldIndex = items.indexOf(candidateId);
+            const newIndex = items.indexOf(overId);
+
+            if (oldIndex !== newIndex) {
+                setData({
+                    ...data,
+                    columns: {
+                        ...data.columns,
+                        [activeContainer]: {
+                            ...data.columns[activeContainer],
+                            candidateIds: arrayMove(items, oldIndex, newIndex),
+                        },
+                    },
+                });
+            }
+            return;
+        }
+
+        // --- Drag Restrictions ---
+        const startColumn = data.columns[activeContainer];
+        const endColumn = data.columns[overContainer];
+        const candidateName = data.candidates[candidateId].name;
+
+        // Restriction: Cannot move from "Offer" back to earlier stages
+        if (startColumn.title.toLowerCase().includes('offer')) {
+            toast.error(`Cannot move ${candidateName} back from ${startColumn.title}`);
+            loadBoard(); // Revert by reloading
+            return;
+        }
+
+        // Confirmation for "Rejected"
+        if (endColumn.title.toLowerCase().includes('reject')) {
+            if (!window.confirm(`Are you sure you want to move ${candidateName} to ${endColumn.title}?`)) {
+                loadBoard();
+                return;
+            }
+        }
+
+        // --- Optimistic Update Rollback Logic ---
+        const previousData = JSON.parse(JSON.stringify(data));
 
         // Fire API call
+        setIsUpdating(prev => ({ ...prev, [candidateId]: true }));
         try {
-            await candidateApi.moveStage(draggableId, finishColumn.id);
+            await candidateApi.moveStage(candidateId, overContainer);
+            toast.success(`${candidateName} moved to ${endColumn.title}`);
         } catch (err) {
-            console.error('Failed to move candidate:', err);
-            // Revert on failure
-            setData({
-                ...data,
-                columns: {
-                    ...data.columns,
-                    [startColumn.id]: startColumn,
-                    [finishColumn.id]: finishColumn,
-                },
-            });
+            toast.error(`Failed to move ${candidateName}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            setData(previousData); // Rollback to snapshot
+        } finally {
+            setIsUpdating(prev => ({ ...prev, [candidateId]: false }));
         }
     };
 
@@ -161,7 +288,11 @@ export default function PipelineBoard() {
                 </div>
             ) : (
                 <div className="flex-1 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300">
-                    <ClientDndContext onDragEnd={onDragEnd}>
+                    <ClientDndContext 
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragEnd={handleDragEnd}
+                    >
                         <div className="flex h-full items-start gap-4 px-1 min-w-max">
                             {data.columnOrder.map((columnId) => {
                                 const column = data.columns[columnId];
@@ -174,13 +305,45 @@ export default function PipelineBoard() {
                                         key={column.id}
                                         column={column}
                                         candidates={candidates}
+                                        isUpdating={isUpdating}
+                                        selection={{
+                                            selectedIds,
+                                            isSelected,
+                                            toggleSelect
+                                        }}
                                     />
                                 );
                             })}
                         </div>
+                        <DragOverlay dropAnimation={{
+                            duration: 250,
+                            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+                            sideEffects: defaultDropAnimationSideEffects({
+                                styles: {
+                                    active: {
+                                        opacity: '0.5',
+                                    },
+                                },
+                            }),
+                        }}>
+                            {activeCandidateId ? (
+                                <CandidateCard 
+                                    candidate={data.candidates[activeCandidateId]} 
+                                    isOverlay 
+                                    loading={isUpdating[activeCandidateId]}
+                                />
+                            ) : null}
+                        </DragOverlay>
                     </ClientDndContext>
                 </div>
             )}
+
+            <BulkActionsToolbar 
+                selectedIds={selectedIds}
+                onClear={clearSelection}
+                onActionComplete={loadBoard}
+                availableStages={data?.columnOrder.map(id => ({ id, name: data.columns[id].title })) || []}
+            />
         </div>
     );
 }

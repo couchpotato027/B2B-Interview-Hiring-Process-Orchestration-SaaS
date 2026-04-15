@@ -13,13 +13,15 @@ export interface CandidateProps {
   name: string;
   email: string;
   phone: string;
-  tenantId: string;
+  organizationId: string;
+  pipelineId: string;
   resumeId: string;
   skills: string[];
   yearsOfExperience: number;
   education: string;
   projects: CandidateProject[];
   status: CandidateStatus;
+  createdAt?: Date;
 }
 
 export class Candidate {
@@ -27,13 +29,15 @@ export class Candidate {
   private name: string;
   private email: Email;
   private phone: string;
-  private tenantId: string;
+  private organizationId: string;
+  private pipelineId: string;
   private resumeId: string;
   private skills: string[];
   private yearsOfExperience: number;
   private education: string;
   private projects: CandidateProject[];
   private status: CandidateStatus;
+  private readonly createdAt: Date;
 
   constructor(props: CandidateProps) {
     Candidate.validateName(props.name);
@@ -43,13 +47,15 @@ export class Candidate {
     this.name = props.name.trim();
     this.email = new Email(props.email);
     this.phone = Candidate.requireNonEmpty(props.phone, 'Candidate phone is required.');
-    this.tenantId = Candidate.requireNonEmpty(props.tenantId, 'Tenant id is required.');
+    this.organizationId = Candidate.requireNonEmpty(props.organizationId, 'Organization id is required.');
+    this.pipelineId = Candidate.requireNonEmpty(props.pipelineId, 'Pipeline id is required.');
     this.resumeId = Candidate.requireNonEmpty(props.resumeId, 'Resume id is required.');
     this.skills = Candidate.normalizeSkills(props.skills);
     this.yearsOfExperience = props.yearsOfExperience;
     this.education = Candidate.requireNonEmpty(props.education, 'Education is required.');
     this.projects = Candidate.validateProjects(props.projects);
     this.status = props.status;
+    this.createdAt = props.createdAt || new Date();
   }
 
   public getId(): string {
@@ -72,8 +78,12 @@ export class Candidate {
     return this.resumeId;
   }
 
-  public getTenantId(): string {
-    return this.tenantId;
+  public getPipelineId(): string {
+    return this.pipelineId;
+  }
+
+  public getOrganizationId(): string {
+    return this.organizationId;
   }
 
   public getSkills(): string[] {
@@ -97,6 +107,10 @@ export class Candidate {
 
   public getStatus(): CandidateStatus {
     return this.status;
+  }
+
+  public getCreatedAt(): Date {
+    return this.createdAt;
   }
 
   public addSkill(skill: string): void {

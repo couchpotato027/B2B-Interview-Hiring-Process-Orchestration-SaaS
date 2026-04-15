@@ -10,7 +10,7 @@ export interface CreateJobInput {
   requiredSkills: string[];
   preferredSkills: string[];
   requiredExperience: number;
-  tenantId: string;
+  organizationId: string;
 }
 
 export class CreateJobUseCase {
@@ -26,7 +26,7 @@ export class CreateJobUseCase {
         requiredSkills: input.requiredSkills,
         preferredSkills: input.preferredSkills,
         requiredExperience: input.requiredExperience,
-        tenantId: input.tenantId,
+        organizationId: input.organizationId,
         status: 'open',
       });
 

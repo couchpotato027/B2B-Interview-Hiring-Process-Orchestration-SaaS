@@ -13,23 +13,24 @@ export class SLAMonitorObserver implements IObserver<EvaluationCompletedEvent> {
   }
 
   public async handle(event: EvaluationCompletedEvent): Promise<void> {
-    const resumes = await this.resumeRepository.findByCandidateId(event.payload.candidateId);
-    const latestResume = [...resumes].sort(
-      (left, right) => right.getUploadedAt().getTime() - left.getUploadedAt().getTime(),
-    )[0];
+    const resume = await this.resumeRepository.findByCandidateId(
+      event.payload.candidateId, 
+      event.payload.organizationId
+    );
 
-    if (!latestResume) {
+    if (!resume) {
       return;
     }
 
     const elapsedMs =
-      event.timestamp.getTime() - latestResume.getUploadedAt().getTime();
+      event.timestamp.getTime() - resume.getUploadedAt().getTime();
 
     if (elapsedMs > SLAMonitorObserver.SLA_THRESHOLD_MS) {
       logger.warn(
         {
           candidateId: event.payload.candidateId,
           evaluationId: event.payload.evaluationId,
+          organizationId: event.payload.organizationId,
           elapsedHours: Number((elapsedMs / (60 * 60 * 1000)).toFixed(2)),
         },
         'SLA alert: evaluation exceeded 48 hours from resume upload',

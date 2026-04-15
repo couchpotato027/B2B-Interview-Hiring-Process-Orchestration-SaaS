@@ -96,4 +96,23 @@ candidateRouter.get('/:id/resume-feedback', (req, res, next) =>
   new CandidateController().getResumeFeedback(req, res, next),
 );
 
+/**
+ * Legacy Actions (Bridged to Clean Arch)
+ */
+candidateRouter.post('/:id/transition', (req, res, next) =>
+  new CandidateController().moveStage(req, res, next),
+);
+
+candidateRouter.put('/:id/stage', (req, res, next) =>
+  new CandidateController().moveStage(req, res, next),
+);
+
+candidateRouter.post('/:id/reject', (req, res, next) =>
+  new CandidateController().reject(req, res, next),
+);
+
+candidateRouter.post('/:id/hire', (req, res, next) =>
+  new CandidateController().hire(req, res, next),
+);
+
 export { candidateRouter };

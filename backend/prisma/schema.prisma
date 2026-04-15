@@ -57,6 +57,7 @@ model User {
   auditLogs    AuditLog[]
   notifications Notification[]
   managedJobs  Job[]        @relation("HiringManager")
+  assignedCandidates Candidate[] @relation("AssignedRecruiter")
 
   @@unique([tenantId, email])
 }
@@ -126,13 +127,15 @@ model Candidate {
   resumeUrl      String?
   status         String   @default("ACTIVE") // ACTIVE, REJECTED, HIRED, ON_HOLD
   stageEnteredAt DateTime @default(now())
+  stageHistory   Json?     @default("[]")
   createdAt      DateTime @default(now())
-  version        Int      @default(1) // OCC support
-
+  assignedRecruiterId String?
+  
   tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   pipeline     PipelineTemplate @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
   job          Job?             @relation(fields: [jobId], references: [id], onDelete: SetNull)
   currentStage PipelineStage?   @relation(fields: [currentStageId], references: [id], onDelete: SetNull)
+  assignedRecruiter User?      @relation("AssignedRecruiter", fields: [assignedRecruiterId], references: [id], onDelete: SetNull)
   evaluations  Evaluation[]
   decisions    Decision[]
   slaAlerts    SlaAlert[]
@@ -140,6 +143,7 @@ model Candidate {
 
   @@index([tenantId, pipelineId, currentStageId])
   @@index([tenantId, status])
+  @@index([tenantId, assignedRecruiterId])
 }
 
 model Evaluation {

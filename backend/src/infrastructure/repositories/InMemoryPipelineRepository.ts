@@ -8,19 +8,37 @@ export class InMemoryPipelineRepository implements IPipelineRepository {
     this.pipelines.set(pipeline.getId(), pipeline);
   }
 
-  async findById(id: string): Promise<Pipeline | null> {
-    return this.pipelines.get(id) || null;
+  async findById(id: string, organizationId: string): Promise<Pipeline | null> {
+    const pipeline = this.pipelines.get(id);
+    if (pipeline && pipeline.getOrganizationId() === organizationId) {
+      return pipeline;
+    }
+    return null;
   }
 
-  async findByJobId(jobId: string): Promise<Pipeline | null> {
-    return Array.from(this.pipelines.values()).find((p) => p.getJobId() === jobId) || null;
+  async findByJobId(jobId: string, organizationId: string): Promise<Pipeline | null> {
+    return Array.from(this.pipelines.values()).find(
+      (p) => p.getJobId() === jobId && p.getOrganizationId() === organizationId
+    ) || null;
   }
 
-  async findAll(): Promise<Pipeline[]> {
-    return Array.from(this.pipelines.values());
+  async findByOrganizationId(organizationId: string): Promise<Pipeline[]> {
+      return this.findAll(organizationId);
   }
 
-  async delete(id: string): Promise<void> {
-    this.pipelines.delete(id);
+  async findAll(organizationId: string): Promise<Pipeline[]> {
+    return Array.from(this.pipelines.values()).filter(p => p.getOrganizationId() === organizationId);
+  }
+
+  async delete(id: string, organizationId?: string): Promise<void> {
+    // If organizationId is provided, we check access first
+    if (organizationId) {
+        const existing = this.pipelines.get(id);
+        if (existing && existing.getOrganizationId() === organizationId) {
+            this.pipelines.delete(id);
+        }
+    } else {
+        this.pipelines.delete(id);
+    }
   }
 }

@@ -8,6 +8,7 @@ export interface CandidateCreatedEvent extends DomainEvent {
   eventType: 'CandidateCreatedEvent';
   payload: {
     candidateId: string;
+    organizationId: string;
     name: string;
     email: string;
     timestamp: Date;
@@ -19,6 +20,7 @@ export interface ResumeProcessedEvent extends DomainEvent {
   payload: {
     candidateId: string;
     resumeId: string;
+    organizationId: string;
     timestamp: Date;
   };
 }
@@ -28,6 +30,7 @@ export interface EvaluationCompletedEvent extends DomainEvent {
   payload: {
     evaluationId: string;
     candidateId: string;
+    organizationId: string;
     jobId: string;
     overallScore: number;
     timestamp: Date;
@@ -39,6 +42,7 @@ export interface CandidateRankedEvent extends DomainEvent {
   payload: {
     jobId: string;
     candidateId: string;
+    organizationId: string;
     rank: number;
     timestamp: Date;
   };
@@ -48,6 +52,7 @@ export interface PipelineCreatedEvent extends DomainEvent {
   eventType: 'PipelineCreatedEvent';
   payload: {
     pipelineId: string;
+    organizationId: string;
     jobId: string;
     name: string;
     timestamp: Date;
@@ -58,6 +63,7 @@ export interface CandidateMovedStageEvent extends DomainEvent {
   eventType: 'CandidateMovedStageEvent';
   payload: {
     candidateId: string;
+    organizationId: string;
     pipelineId: string;
     fromStageId: string | null;
     toStageId: string;

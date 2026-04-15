@@ -1,12 +1,42 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { 
+    DndContext, 
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+    DragStartEvent,
+    DragOverEvent
+} from '@dnd-kit/core';
+import { Toaster } from 'react-hot-toast';
 
-// Since drag-and-drop libraries rely heavily on the window object
-// we must ensure they mount strictly on the client side in Next.js
-export function ClientDndContext({ onDragEnd, children }: { onDragEnd: (result: DropResult) => void, children: React.ReactNode }) {
+export function ClientDndContext({ 
+    onDragEnd, 
+    onDragStart,
+    onDragOver,
+    children 
+}: { 
+    onDragEnd: (event: DragEndEvent) => void, 
+    onDragStart?: (event: DragStartEvent) => void,
+    onDragOver?: (event: DragOverEvent) => void,
+    children: React.ReactNode 
+}) {
     const [mounted, setMounted] = useState(false);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     useEffect(() => {
         setMounted(true);
@@ -17,11 +47,15 @@ export function ClientDndContext({ onDragEnd, children }: { onDragEnd: (result: 
     }
 
     return (
-        <DragDropContext onDragEnd={onDragEnd}>
+        <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDragEnd={onDragEnd}
+        >
             {children}
-        </DragDropContext>
+            <Toaster position="bottom-right" />
+        </DndContext>
     );
 }
-
-// Re-export specific modules so they can be consumed securely
-export { Droppable, Draggable };

@@ -16,6 +16,7 @@ export interface EvaluationProps {
   strengths: string[];
   weaknesses: string[];
   recommendation: EvaluationRecommendation;
+  organizationId: string;
   evaluatedAt: Date;
 }
 
@@ -34,12 +35,14 @@ export class Evaluation {
   private strengths: string[];
   private weaknesses: string[];
   private recommendation: EvaluationRecommendation;
+  private readonly organizationId: string;
   private readonly evaluatedAt: Date;
 
   constructor(props: EvaluationProps) {
     this.id = Evaluation.requireNonEmpty(props.id, 'Evaluation id is required.');
     this.candidateId = Evaluation.requireNonEmpty(props.candidateId, 'Candidate id is required.');
     this.jobId = Evaluation.requireNonEmpty(props.jobId, 'Job id is required.');
+    this.organizationId = Evaluation.requireNonEmpty(props.organizationId, 'Organization id is required.');
     this.skillMatchScore = new Score(props.skillMatchScore);
     this.experienceScore = new Score(props.experienceScore);
     this.projectRelevanceScore = new Score(props.projectRelevanceScore);
@@ -61,6 +64,10 @@ export class Evaluation {
 
   public getJobId(): string {
     return this.jobId;
+  }
+
+  public getOrganizationId(): string {
+    return this.organizationId;
   }
 
   public getSkillMatchScore(): number {

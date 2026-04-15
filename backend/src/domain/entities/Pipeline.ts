@@ -6,6 +6,7 @@ export interface PipelineProps {
   jobId: string;
   stages: PipelineStage[];
   isActive: boolean;
+  organizationId: string;
   createdAt: Date;
 }
 
@@ -15,6 +16,7 @@ export class Pipeline {
   private readonly jobId: string;
   private stages: PipelineStage[];
   private isActive: boolean;
+  private readonly organizationId: string;
   private readonly createdAt: Date;
 
   constructor(props: PipelineProps) {
@@ -23,6 +25,7 @@ export class Pipeline {
     this.jobId = props.jobId;
     this.stages = this.sortStages(props.stages);
     this.isActive = props.isActive;
+    this.organizationId = props.organizationId;
     this.createdAt = props.createdAt;
   }
 
@@ -48,6 +51,10 @@ export class Pipeline {
 
   public getCreatedAt(): Date {
     return this.createdAt;
+  }
+
+  public getOrganizationId(): string {
+    return this.organizationId;
   }
 
   public addStage(stage: PipelineStage): void {

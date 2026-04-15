@@ -9,6 +9,15 @@ export interface AppConfigValues {
   logLevel: string;
   geminiApiKey: string;
   geminiModel: string;
+  jwtSecret: string;
+  // Storage
+  storageProvider: 'local' | 's3';
+  uploadDir: string;
+  baseUrl: string;
+  s3Bucket: string;
+  s3Region: string;
+  s3AccessKeyId?: string;
+  s3SecretAccessKey?: string;
 }
 
 const parsePositiveInteger = (value: string | undefined, fallback: number, key: string): number => {
@@ -38,6 +47,15 @@ export class AppConfig {
         logLevel: process.env.LOG_LEVEL ?? 'info',
         geminiApiKey: process.env.GEMINI_API_KEY ?? '',
         geminiModel: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
+        jwtSecret: process.env.JWT_SECRET ?? 'hireflow_development_secret_key_2024_!@#',
+        // Storage
+        storageProvider: (process.env.STORAGE_PROVIDER ?? 'local') as 'local' | 's3',
+        uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
+        baseUrl: process.env.API_BASE_URL ?? 'http://localhost:3001',
+        s3Bucket: process.env.S3_BUCKET ?? '',
+        s3Region: process.env.S3_REGION ?? 'us-east-1',
+        s3AccessKeyId: process.env.S3_ACCESS_KEY_ID,
+        s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
       };
     }
 
@@ -51,8 +69,17 @@ export class AppConfig {
       throw new Error(`Invalid NODE_ENV value: ${config.nodeEnv}`);
     }
 
-    if (config.nodeEnv === 'production' && !config.geminiApiKey.trim()) {
-      throw new Error('GEMINI_API_KEY is required in production.');
+    if (config.storageProvider === 's3' && !config.s3Bucket) {
+      throw new Error('S3_BUCKET is required when using s3 storage provider.');
+    }
+
+    if (config.nodeEnv === 'production') {
+      if (!config.geminiApiKey.trim()) {
+        throw new Error('GEMINI_API_KEY is required in production.');
+      }
+      if (config.jwtSecret === 'hireflow_development_secret_key_2024_!@#' || !config.jwtSecret.trim()) {
+        throw new Error('A secure JWT_SECRET is required in production.');
+      }
     }
   }
 }

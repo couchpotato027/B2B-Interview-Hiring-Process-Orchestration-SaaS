@@ -13,6 +13,7 @@ import type { Result } from '../../shared/Result';
 export interface EvaluateCandidateInput {
   candidateId: string;
   jobId: string;
+  organizationId: string;
 }
 
 export interface EvaluateCandidateDependencies {
@@ -31,7 +32,7 @@ export class EvaluateCandidateUseCase {
   }
 
   public async execute(input: EvaluateCandidateInput): Promise<Result<Evaluation>> {
-    const candidate = await this.dependencies.candidateRepository.findById(input.candidateId);
+    const candidate = await this.dependencies.candidateRepository.findById(input.candidateId, input.organizationId);
     if (!candidate) {
       return {
         success: false,
@@ -40,7 +41,7 @@ export class EvaluateCandidateUseCase {
       };
     }
 
-    const job = await this.dependencies.jobRepository.findById(input.jobId);
+    const job = await this.dependencies.jobRepository.findById(input.jobId, input.organizationId);
     if (!job) {
       return {
         success: false,
@@ -70,6 +71,7 @@ export class EvaluateCandidateUseCase {
         strengths: insights.strengths,
         weaknesses: insights.weaknesses,
         recommendation: this.mapRecommendation(insights.recommendation),
+        organizationId: input.organizationId,
         evaluatedAt: new Date(),
       });
 
@@ -81,6 +83,7 @@ export class EvaluateCandidateUseCase {
         payload: {
           evaluationId: savedEvaluation.getId(),
           candidateId: savedEvaluation.getCandidateId(),
+          organizationId: input.organizationId,
           jobId: savedEvaluation.getJobId(),
           overallScore: savedEvaluation.getOverallScore(),
           timestamp: new Date(),

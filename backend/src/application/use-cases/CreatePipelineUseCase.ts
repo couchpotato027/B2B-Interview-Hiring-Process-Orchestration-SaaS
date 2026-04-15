@@ -8,6 +8,7 @@ import { EventEmitter } from '../../infrastructure/events/EventEmitter';
 export interface CreatePipelineInput {
   name: string;
   jobId: string;
+  organizationId: string;
   stages: Array<{
     name: string;
     type: PipelineStageType;
@@ -36,6 +37,7 @@ export class CreatePipelineUseCase {
       id: pipelineId,
       name: input.name,
       jobId: input.jobId,
+      organizationId: input.organizationId,
       stages,
       isActive: true,
       createdAt: new Date(),
@@ -45,8 +47,10 @@ export class CreatePipelineUseCase {
 
     await this.eventEmitter.emit({
       eventType: 'PipelineCreatedEvent',
+      timestamp: new Date(),
       payload: {
         pipelineId,
+        organizationId: input.organizationId,
         jobId: input.jobId,
         name: input.name,
         timestamp: new Date(),

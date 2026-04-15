@@ -9,6 +9,7 @@ import type { Result } from '../../shared/Result';
 
 export interface RankCandidatesForJobInput {
   jobId: string;
+  organizationId: string;
 }
 
 export interface RankedCandidate {
@@ -34,7 +35,7 @@ export class RankCandidatesForJobUseCase {
   public async execute(
     input: RankCandidatesForJobInput,
   ): Promise<Result<RankedCandidate[]>> {
-    const job = await this.dependencies.jobRepository.findById(input.jobId);
+    const job = await this.dependencies.jobRepository.findById(input.jobId, input.organizationId);
     if (!job) {
       return {
         success: false,
@@ -43,7 +44,7 @@ export class RankCandidatesForJobUseCase {
       };
     }
 
-    const evaluations = await this.dependencies.evaluationRepository.findByJobId(job.getId());
+    const evaluations = await this.dependencies.evaluationRepository.findByJobId(job.getId(), input.organizationId);
     if (evaluations.length === 0) {
       return {
         success: false,
@@ -58,6 +59,7 @@ export class RankCandidatesForJobUseCase {
         .map(async (evaluation, index) => {
           const candidate = await this.dependencies.candidateRepository.findById(
             evaluation.getCandidateId(),
+            input.organizationId
           );
 
           if (!candidate) {
@@ -80,6 +82,7 @@ export class RankCandidatesForJobUseCase {
           payload: {
             jobId: job.getId(),
             candidateId: rankedCandidate.candidate.getId(),
+            organizationId: input.organizationId,
             rank: rankedCandidate.rank,
             timestamp: new Date(),
           },

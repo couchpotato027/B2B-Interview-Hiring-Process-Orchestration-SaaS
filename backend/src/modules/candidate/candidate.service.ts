@@ -160,4 +160,50 @@ export class CandidateService {
 
         return prisma.candidate.findUnique({ where: { id: candidateId }, include: { currentStage: true } });
     }
+
+    async bulkUpdateCandidates(tenantId: string, candidateIds: string[], action: string, payload: any) {
+        const results = {
+            total: candidateIds.length,
+            success: 0,
+            failed: 0,
+            errors: [] as { id: string; error: string }[],
+        };
+
+        for (const id of candidateIds) {
+            try {
+                switch (action) {
+                    case 'MOVE_STAGE':
+                        await this.moveCandidateStage(tenantId, id, payload.newStageId);
+                        break;
+                    case 'ASSIGN_RECRUITER':
+                        await prisma.candidate.update({
+                            where: { id, tenantId },
+                            data: { assignedRecruiterId: payload.recruiterId },
+                        });
+                        break;
+                    case 'REJECT':
+                        await this.rejectCandidate(tenantId, id);
+                        break;
+                    case 'HIRE':
+                        await this.hireCandidate(tenantId, id);
+                        break;
+                    case 'DELETE':
+                        await this.deleteCandidate(tenantId, id);
+                        break;
+                    case 'SEND_EMAIL':
+                        // In a real app, integrate with an EmailService (SendGrid/AWS SES)
+                        console.log(`Sending email to candidate ${id}: ${payload.subject}`);
+                        break;
+                    default:
+                        throw new Error(`Invalid bulk action: ${action}`);
+                }
+                results.success++;
+            } catch (error: any) {
+                results.failed++;
+                results.errors.push({ id, error: error.message || 'Unknown error' });
+            }
+        }
+
+        return results;
+    }
 }

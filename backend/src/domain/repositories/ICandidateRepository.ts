@@ -4,10 +4,10 @@ import type { PaginatedResult, PaginationParams } from '../types/Pagination';
 
 export interface CandidateFilters extends PaginationParams {
   status?: CandidateStatus;
-  tenantId?: string;
+  organizationId?: string;
 }
 
 export interface ICandidateRepository extends IRepository<Candidate> {
-  findByEmail(email: string): Promise<Candidate | null>;
-  findWithFilters(filters: CandidateFilters): Promise<PaginatedResult<Candidate>>;
+  findByEmail(email: string, organizationId: string): Promise<Candidate | null>;
+  findWithFilters(filters: CandidateFilters, organizationId: string): Promise<PaginatedResult<Candidate>>;
 }

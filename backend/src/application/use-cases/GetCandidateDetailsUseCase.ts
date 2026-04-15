@@ -8,6 +8,7 @@ import type { Result } from '../../shared/Result';
 
 export interface GetCandidateDetailsInput {
   candidateId: string;
+  organizationId: string;
 }
 
 export interface CandidateDetails {
@@ -28,7 +29,7 @@ export class GetCandidateDetailsUseCase {
   public async execute(
     input: GetCandidateDetailsInput,
   ): Promise<Result<CandidateDetails>> {
-    const candidate = await this.dependencies.candidateRepository.findById(input.candidateId);
+    const candidate = await this.dependencies.candidateRepository.findById(input.candidateId, input.organizationId);
 
     if (!candidate) {
       return {
@@ -38,14 +39,11 @@ export class GetCandidateDetailsUseCase {
       };
     }
 
-    const resumes = await this.dependencies.resumeRepository.findByCandidateId(candidate.getId());
+    const latestResume = await this.dependencies.resumeRepository.findByCandidateId(candidate.getId(), input.organizationId);
     const evaluations = await this.dependencies.evaluationRepository.findByCandidateId(
       candidate.getId(),
+      input.organizationId
     );
-
-    const latestResume = [...resumes].sort(
-      (left, right) => right.getUploadedAt().getTime() - left.getUploadedAt().getTime(),
-    )[0] ?? null;
 
     return {
       success: true,

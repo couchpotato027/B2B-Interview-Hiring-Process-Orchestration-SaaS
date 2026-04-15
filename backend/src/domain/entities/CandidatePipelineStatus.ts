@@ -13,6 +13,7 @@ export interface CandidatePipelineStatusProps {
   currentStageId: string;
   stageHistory: StageTransition[];
   notes?: string;
+  organizationId: string;
   updatedAt: Date;
 }
 
@@ -23,6 +24,7 @@ export class CandidatePipelineStatus {
   private currentStageId: string;
   private stageHistory: StageTransition[];
   private notes?: string;
+  private organizationId: string;
   private updatedAt: Date;
 
   constructor(props: CandidatePipelineStatusProps) {
@@ -32,6 +34,7 @@ export class CandidatePipelineStatus {
     this.currentStageId = props.currentStageId;
     this.stageHistory = props.stageHistory;
     this.notes = props.notes;
+    this.organizationId = props.organizationId;
     this.updatedAt = props.updatedAt;
   }
 
@@ -61,6 +64,10 @@ export class CandidatePipelineStatus {
 
   public getUpdatedAt(): Date {
     return this.updatedAt;
+  }
+
+  public getOrganizationId(): string {
+    return this.organizationId;
   }
 
   public moveToStage(stageId: string, movedBy: string, reason?: string, notes?: string): void {

@@ -5,28 +5,37 @@ import type { IEvaluationRepository } from '../../domain/repositories/IEvaluatio
 export class InMemoryEvaluationRepository implements IEvaluationRepository {
   private readonly store = new Map<string, Evaluation>();
 
-  public async findById(id: string): Promise<Evaluation | null> {
-    return this.store.get(id) ?? null;
+  public async findById(id: string, organizationId: string): Promise<Evaluation | null> {
+    const evaluation = this.store.get(id);
+    if (evaluation && evaluation.getOrganizationId() === organizationId) {
+      return evaluation;
+    }
+    return null;
   }
 
-  public async findAll(): Promise<Evaluation[]> {
-    return Array.from(this.store.values());
+  public async findAll(organizationId: string): Promise<Evaluation[]> {
+    return Array.from(this.store.values()).filter(e => e.getOrganizationId() === organizationId);
   }
 
-  public async findByJobId(jobId: string): Promise<Evaluation[]> {
-    return Array.from(this.store.values()).filter((evaluation) => evaluation.getJobId() === jobId);
-  }
-
-  public async findByCandidateId(candidateId: string): Promise<Evaluation[]> {
+  public async findByJobId(jobId: string, organizationId: string): Promise<Evaluation[]> {
     return Array.from(this.store.values()).filter(
-      (evaluation) => evaluation.getCandidateId() === candidateId,
+      (evaluation) => evaluation.getJobId() === jobId && evaluation.getOrganizationId() === organizationId
     );
   }
 
-  public async findByCandidateAndJob(candidateId: string, jobId: string): Promise<Evaluation | null> {
+  public async findByCandidateId(candidateId: string, organizationId: string): Promise<Evaluation[]> {
+    return Array.from(this.store.values()).filter(
+      (evaluation) => evaluation.getCandidateId() === candidateId && evaluation.getOrganizationId() === organizationId
+    );
+  }
+
+  public async findByCandidateAndJob(candidateId: string, jobId: string, organizationId: string): Promise<Evaluation | null> {
     return (
       Array.from(this.store.values()).find(
-        (evaluation) => evaluation.getCandidateId() === candidateId && evaluation.getJobId() === jobId,
+        (evaluation) => 
+          evaluation.getCandidateId() === candidateId && 
+          evaluation.getJobId() === jobId && 
+          evaluation.getOrganizationId() === organizationId
       ) ?? null
     );
   }
@@ -37,9 +46,10 @@ export class InMemoryEvaluationRepository implements IEvaluationRepository {
     return evaluation;
   }
 
-  public async update(id: string, entity: Evaluation): Promise<Evaluation> {
-    if (!this.store.has(id)) {
-      throw new Error(`Evaluation with id ${id} not found.`);
+  public async update(id: string, entity: Evaluation, organizationId: string): Promise<Evaluation> {
+    const existing = this.store.get(id);
+    if (!existing || existing.getOrganizationId() !== organizationId) {
+      throw new Error(`Evaluation with id ${id} not found in your organization.`);
     }
 
     const evaluation = this.alignEntityId(entity, id);
@@ -47,8 +57,11 @@ export class InMemoryEvaluationRepository implements IEvaluationRepository {
     return evaluation;
   }
 
-  public async delete(id: string): Promise<void> {
-    this.store.delete(id);
+  public async delete(id: string, organizationId: string): Promise<void> {
+    const existing = this.store.get(id);
+    if (existing && existing.getOrganizationId() === organizationId) {
+      this.store.delete(id);
+    }
   }
 
   private ensureEntityId(entity: Evaluation): Evaluation {

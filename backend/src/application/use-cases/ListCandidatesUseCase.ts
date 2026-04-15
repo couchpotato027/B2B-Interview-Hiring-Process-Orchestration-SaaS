@@ -5,7 +5,7 @@ import type { Result } from '../../shared/Result';
 
 export interface ListCandidatesInput {
   status?: CandidateStatus;
-  tenantId: string;
+  organizationId: string;
   page?: number;
   limit?: number;
 }
@@ -20,15 +20,15 @@ export class ListCandidatesUseCase {
   public async execute(
     input: ListCandidatesInput,
   ): Promise<Result<PaginatedResult<Candidate>>> {
-    const { status, tenantId, page = 1, limit = 10 } = input;
+    const { status, organizationId, page = 1, limit = 10 } = input;
 
     try {
       const result = await this.dependencies.candidateRepository.findWithFilters({
         status,
-        tenantId,
+        organizationId,
         page,
         limit,
-      });
+      }, organizationId);
 
       return {
         success: true,

@@ -19,27 +19,39 @@ export interface ParsedResumeData {
 export interface ResumeProps {
   id: string;
   candidateId: string;
+  fileId?: string;
   fileName: string;
   rawText: string;
   parsedData: ParsedResumeData;
+  organizationId: string;
   uploadedAt: Date;
+  thumbnailUrl?: string;
+  pageCount?: number;
 }
 
 export class Resume {
   private readonly id: string;
   private readonly candidateId: string;
+  private fileId?: string;
   private readonly fileName: string;
   private rawText: string;
   private parsedData: ParsedResumeData;
+  private readonly organizationId: string;
   private readonly uploadedAt: Date;
+  private thumbnailUrl?: string;
+  private pageCount?: number;
 
   constructor(props: ResumeProps) {
     this.id = Resume.requireNonEmpty(props.id, 'Resume id is required.');
     this.candidateId = Resume.requireNonEmpty(props.candidateId, 'Candidate id is required.');
+    this.fileId = props.fileId;
     this.fileName = Resume.requireNonEmpty(props.fileName, 'File name is required.');
     this.rawText = Resume.requireNonEmpty(props.rawText, 'Raw text is required.');
     this.parsedData = Resume.validateParsedData(props.parsedData);
+    this.organizationId = Resume.requireNonEmpty(props.organizationId, 'Organization id is required.');
     this.uploadedAt = Resume.validateDate(props.uploadedAt, 'Uploaded date is invalid.');
+    this.thumbnailUrl = props.thumbnailUrl;
+    this.pageCount = props.pageCount;
   }
 
   public getId(): string {
@@ -48,6 +60,10 @@ export class Resume {
 
   public getCandidateId(): string {
     return this.candidateId;
+  }
+
+  public getFileId(): string | undefined {
+    return this.fileId;
   }
 
   public getFileName(): string {
@@ -64,6 +80,30 @@ export class Resume {
 
   public getUploadedAt(): Date {
     return new Date(this.uploadedAt);
+  }
+
+  public getOrganizationId(): string {
+    return this.organizationId;
+  }
+
+  public getThumbnailUrl(): string | undefined {
+    return this.thumbnailUrl;
+  }
+
+  public getPageCount(): number | undefined {
+    return this.pageCount;
+  }
+
+  public setFileId(fileId: string): void {
+    this.fileId = fileId;
+  }
+
+  public setThumbnailUrl(url: string): void {
+    this.thumbnailUrl = url;
+  }
+
+  public setPageCount(count: number): void {
+    this.pageCount = count;
   }
 
   public updateParsedData(data: ParsedResumeData): void {

@@ -6,6 +6,8 @@ import { EvaluationTransformer, EvaluationDTO } from './EvaluationTransformer';
 export interface CandidateDTO {
   id: string;
   name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   skills: string[];
@@ -27,9 +29,15 @@ export interface CandidateDetailsDTO {
 
 export class CandidateTransformer {
   public static toDTO(candidate: Candidate): CandidateDTO {
+    const name = candidate.getName();
+    const [firstName, ...lastNames] = name.split(' ');
+    const lastName = lastNames.join(' ') || '';
+
     return {
       id: candidate.getId(),
-      name: candidate.getName(),
+      name: name,
+      firstName: firstName || name,
+      lastName: lastName,
       email: candidate.getEmail(),
       phone: candidate.getPhone(),
       skills: candidate.getSkills(),

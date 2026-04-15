@@ -7,6 +7,7 @@ import { SkillMatchStrategy } from './SkillMatchStrategy';
 export const defaultScoringExample = async () => {
   const candidate = new Candidate({
     id: 'candidate-1',
+    pipelineId: 'pipeline-1',
     name: 'Priya Sharma',
     email: 'priya@example.com',
     phone: '+91-9876543210',
@@ -26,7 +27,7 @@ export const defaultScoringExample = async () => {
         technologies: ['React', 'Docker'],
       },
     ],
-    tenantId: 'org-123',
+    organizationId: 'org-123',
     status: 'active',
   });
 
@@ -38,7 +39,7 @@ export const defaultScoringExample = async () => {
     requiredSkills: ['TypeScript', 'Node.js', 'PostgreSQL'],
     preferredSkills: ['Docker', 'Redis'],
     requiredExperience: 3,
-    tenantId: 'org-123',
+    organizationId: 'org-123',
     status: 'open',
   });
 
@@ -50,6 +51,7 @@ export const defaultScoringExample = async () => {
 export const customScoringExample = async () => {
   const candidate = new Candidate({
     id: 'candidate-2',
+    pipelineId: 'pipeline-1',
     name: 'Arjun Patel',
     email: 'arjun@example.com',
     phone: '+91-9988776655',
@@ -64,7 +66,7 @@ export const customScoringExample = async () => {
         technologies: ['TypeScript', 'Express'],
       },
     ],
-    tenantId: 'org-123',
+    organizationId: 'org-123',
     status: 'active',
   });
 
@@ -76,7 +78,7 @@ export const customScoringExample = async () => {
     requiredSkills: ['TypeScript', 'Express', 'Docker'],
     preferredSkills: ['Kubernetes'],
     requiredExperience: 3,
-    tenantId: 'org-123',
+    organizationId: 'org-123',
     status: 'open',
   });
 

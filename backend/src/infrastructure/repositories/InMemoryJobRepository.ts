@@ -5,16 +5,26 @@ import type { IJobRepository } from '../../domain/repositories/IJobRepository';
 export class InMemoryJobRepository implements IJobRepository {
   private readonly store = new Map<string, Job>();
 
-  public async findById(id: string): Promise<Job | null> {
-    return this.store.get(id) ?? null;
+  public async findById(id: string, organizationId: string): Promise<Job | null> {
+    const job = this.store.get(id);
+    if (job && job.getOrganizationId() === organizationId) {
+      return job;
+    }
+    return null;
   }
 
-  public async findAll(): Promise<Job[]> {
-    return Array.from(this.store.values());
+  public async findAll(organizationId: string): Promise<Job[]> {
+    return Array.from(this.store.values()).filter(j => j.getOrganizationId() === organizationId);
   }
 
-  public async findByStatus(status: JobStatus): Promise<Job[]> {
-    return Array.from(this.store.values()).filter((job) => job.getStatus() === status);
+  public async findByStatus(status: JobStatus, organizationId: string): Promise<Job[]> {
+    return Array.from(this.store.values()).filter(
+      (job) => job.getStatus() === status && job.getOrganizationId() === organizationId
+    );
+  }
+
+  public async findByOrganizationId(organizationId: string): Promise<Job[]> {
+      return this.findAll(organizationId);
   }
 
   public async save(entity: Job): Promise<Job> {
@@ -23,9 +33,10 @@ export class InMemoryJobRepository implements IJobRepository {
     return job;
   }
 
-  public async update(id: string, entity: Job): Promise<Job> {
-    if (!this.store.has(id)) {
-      throw new Error(`Job with id ${id} not found.`);
+  public async update(id: string, entity: Job, organizationId: string): Promise<Job> {
+    const existing = this.store.get(id);
+    if (!existing || existing.getOrganizationId() !== organizationId) {
+      throw new Error(`Job with id ${id} not found in your organization.`);
     }
 
     const job = this.alignEntityId(entity, id);
@@ -33,8 +44,11 @@ export class InMemoryJobRepository implements IJobRepository {
     return job;
   }
 
-  public async delete(id: string): Promise<void> {
-    this.store.delete(id);
+  public async delete(id: string, organizationId: string): Promise<void> {
+    const existing = this.store.get(id);
+    if (existing && existing.getOrganizationId() === organizationId) {
+      this.store.delete(id);
+    }
   }
 
   private ensureEntityId(entity: Job): Job {

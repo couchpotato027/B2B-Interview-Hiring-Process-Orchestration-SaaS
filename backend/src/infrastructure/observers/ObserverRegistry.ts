@@ -1,6 +1,9 @@
 import type { DomainEvent } from '../../domain/events/DomainEvents';
 import type { IObserver } from '../../domain/observers/IObserver';
 import type { IResumeRepository } from '../../domain/repositories/IResumeRepository';
+import type { ICandidateRepository } from '../../domain/repositories/ICandidateRepository';
+import type { ICandidatePipelineStatusRepository } from '../../domain/repositories/ICandidatePipelineStatusRepository';
+import type { ISearchService } from '../../domain/services/ISearchService';
 import { EventEmitter, type EventHandler } from '../events/EventEmitter';
 import { DashboardMetricsObserver } from './DashboardMetricsObserver';
 import { EmailNotificationObserver } from './EmailNotificationObserver';
@@ -9,12 +12,16 @@ import { StageTransitionObserver } from './StageTransitionObserver';
 import { AutoEmailObserver } from './AutoEmailObserver';
 import { SLATrackingObserver } from './SLATrackingObserver';
 import { AnalyticsCacheObserver } from './AnalyticsCacheObserver';
+import { SearchIndexObserver } from './SearchIndexObserver';
 
 export class ObserverRegistry {
   private readonly eventEmitter: EventEmitter;
 
   constructor(
     private readonly resumeRepository: IResumeRepository,
+    private readonly candidateRepository: ICandidateRepository,
+    private readonly pipelineStatusRepository: ICandidatePipelineStatusRepository,
+    private readonly searchService: ISearchService,
     eventEmitter?: EventEmitter,
   ) {
     this.eventEmitter = eventEmitter ?? EventEmitter.getInstance();
@@ -28,12 +35,22 @@ export class ObserverRegistry {
     const autoEmailObserver = new AutoEmailObserver();
     const slaTrackingObserver = new SLATrackingObserver();
     const analyticsCacheObserver = new AnalyticsCacheObserver();
+    const searchIndexObserver = new SearchIndexObserver(
+        this.searchService, 
+        this.candidateRepository, 
+        this.resumeRepository,
+        this.pipelineStatusRepository
+    );
 
     this.registerObserver(emailNotificationObserver);
     this.registerObserver(slaMonitorObserver);
     this.registerObserver(stageTransitionObserver);
     this.registerObserver(autoEmailObserver);
     this.registerObserver(slaTrackingObserver);
+
+    this.registerObserverForEventType(searchIndexObserver, 'CandidateCreatedEvent');
+    this.registerObserverForEventType(searchIndexObserver, 'ResumeProcessedEvent');
+    this.registerObserverForEventType(searchIndexObserver, 'CandidateMovedStageEvent');
 
     for (const eventType of analyticsCacheObserver.getSupportedEventTypes()) {
         this.registerObserverForEventType(analyticsCacheObserver, eventType);

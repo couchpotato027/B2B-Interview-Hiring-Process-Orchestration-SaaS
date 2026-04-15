@@ -1,4 +1,4 @@
-import { PDFParse } from 'pdf-parse';
+import pdf from 'pdf-parse';
 import type { ParsedResumeData } from '../../domain/entities/Resume';
 import type { IResumeParser } from '../../domain/services/IResumeParser';
 import { extractStructuredResumeData } from './resume-extraction.util';
@@ -9,13 +9,7 @@ export class PDFResumeParser implements IResumeParser {
   }
 
   public async parse(fileBuffer: Buffer, _fileName: string): Promise<ParsedResumeData> {
-    const parser = new PDFParse({ data: fileBuffer });
-
-    try {
-      const parsedPdf = await parser.getText();
-      return extractStructuredResumeData(parsedPdf.text);
-    } finally {
-      await parser.destroy();
-    }
+    const parsedPdf = await pdf(fileBuffer);
+    return extractStructuredResumeData(parsedPdf.text);
   }
 }

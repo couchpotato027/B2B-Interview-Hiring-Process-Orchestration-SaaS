@@ -10,9 +10,9 @@ export class JobMarketInsightsUseCase {
     private readonly aiService: IAIService
   ) {}
 
-  public async execute(input: { jobId: string }): Promise<Result<MarketInsights>> {
+  public async execute(input: { jobId: string; organizationId: string }): Promise<Result<MarketInsights>> {
     try {
-      const job = await this.jobRepository.findById(input.jobId);
+      const job = await this.jobRepository.findById(input.jobId, input.organizationId);
       if (!job) {
         return { success: false, error: 'Job not found', code: 'JOB_NOT_FOUND' };
       }

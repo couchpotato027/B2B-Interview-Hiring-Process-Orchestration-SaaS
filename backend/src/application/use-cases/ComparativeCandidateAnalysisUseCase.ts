@@ -9,6 +9,7 @@ import { logger } from '../../infrastructure/logging/logger';
 export interface ComparativeAnalysisInput {
   jobId: string;
   candidateIds: string[];
+  organizationId: string;
 }
 
 export class ComparativeCandidateAnalysisUseCase {
@@ -21,13 +22,13 @@ export class ComparativeCandidateAnalysisUseCase {
 
   public async execute(input: ComparativeAnalysisInput): Promise<Result<ComparativeInsights>> {
     try {
-      const job = await this.jobRepository.findById(input.jobId);
+      const job = await this.jobRepository.findById(input.jobId, input.organizationId);
       if (!job) {
         return { success: false, error: 'Job not found', code: 'JOB_NOT_FOUND' };
       }
 
       const candidates = await Promise.all(
-        input.candidateIds.map(id => this.candidateRepository.findById(id))
+        input.candidateIds.map(id => this.candidateRepository.findById(id, input.organizationId))
       );
       
       const validCandidates = candidates.filter((c): c is any => c !== null);
@@ -36,7 +37,7 @@ export class ComparativeCandidateAnalysisUseCase {
       }
 
       const evaluations = await Promise.all(
-        input.candidateIds.map(id => this.evaluationRepository.findByCandidateAndJob(id, input.jobId))
+        input.candidateIds.map(id => this.evaluationRepository.findByCandidateAndJob(id, input.jobId, input.organizationId))
       );
 
       const validEvaluations = evaluations.filter((e): e is any => e !== null);

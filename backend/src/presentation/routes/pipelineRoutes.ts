@@ -10,9 +10,13 @@ const getController = () => {
     container.resolve('CreatePipelineUseCase'),
     container.resolve('MoveCandidateThroughPipelineUseCase'),
     container.resolve('GetPipelineBoardUseCase'),
-    container.resolve('BulkMoveCandidatesUseCase')
+    container.resolve('BulkMoveCandidatesUseCase'),
+    new (require('../../application/use-cases/GetPipelinesUseCase').GetPipelinesUseCase)()
   );
 };
+
+pipelineRouter.get('/', (req, res, next) => getController().listPipelines(req, res, next));
+pipelineRouter.get('/:id', (req, res, next) => getController().getBoard(req, res, next)); // Reuse getBoard to provide pipeline context
 
 /**
  * @openapi

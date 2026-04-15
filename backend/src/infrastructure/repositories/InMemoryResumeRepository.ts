@@ -5,18 +5,22 @@ import type { IResumeRepository } from '../../domain/repositories/IResumeReposit
 export class InMemoryResumeRepository implements IResumeRepository {
   private readonly store = new Map<string, Resume>();
 
-  public async findById(id: string): Promise<Resume | null> {
-    return this.store.get(id) ?? null;
+  public async findById(id: string, organizationId: string): Promise<Resume | null> {
+    const resume = this.store.get(id);
+    if (resume && resume.getOrganizationId() === organizationId) {
+      return resume;
+    }
+    return null;
   }
 
-  public async findAll(): Promise<Resume[]> {
-    return Array.from(this.store.values());
+  public async findAll(organizationId: string): Promise<Resume[]> {
+    return Array.from(this.store.values()).filter(r => r.getOrganizationId() === organizationId);
   }
 
-  public async findByCandidateId(candidateId: string): Promise<Resume[]> {
-    return Array.from(this.store.values()).filter(
-      (resume) => resume.getCandidateId() === candidateId,
-    );
+  public async findByCandidateId(candidateId: string, organizationId: string): Promise<Resume | null> {
+    return Array.from(this.store.values()).find(
+      (resume) => resume.getCandidateId() === candidateId && resume.getOrganizationId() === organizationId
+    ) ?? null;
   }
 
   public async save(entity: Resume): Promise<Resume> {
@@ -25,9 +29,10 @@ export class InMemoryResumeRepository implements IResumeRepository {
     return resume;
   }
 
-  public async update(id: string, entity: Resume): Promise<Resume> {
-    if (!this.store.has(id)) {
-      throw new Error(`Resume with id ${id} not found.`);
+  public async update(id: string, entity: Resume, organizationId: string): Promise<Resume> {
+    const existing = this.store.get(id);
+    if (!existing || existing.getOrganizationId() !== organizationId) {
+      throw new Error(`Resume with id ${id} not found in your organization.`);
     }
 
     const resume = this.alignEntityId(entity, id);
@@ -35,8 +40,11 @@ export class InMemoryResumeRepository implements IResumeRepository {
     return resume;
   }
 
-  public async delete(id: string): Promise<void> {
-    this.store.delete(id);
+  public async delete(id: string, organizationId: string): Promise<void> {
+    const existing = this.store.get(id);
+    if (existing && existing.getOrganizationId() === organizationId) {
+      this.store.delete(id);
+    }
   }
 
   private ensureEntityId(entity: Resume): Resume {

@@ -6,15 +6,18 @@ import { RankCandidatesForJobUseCase } from '../../application/use-cases/RankCan
 import { BatchEvaluationUseCase } from '../../application/use-cases/BatchEvaluationUseCase';
 import { EvaluationTransformer } from '../transformers/EvaluationTransformer';
 import { wsService } from '../integration/websocket';
+import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
 
 export class EvaluationController extends BaseController {
-  private readonly container = Container.getInstance();
-  private readonly evaluateCandidateUseCase =
-    this.container.resolve<EvaluateCandidateUseCase>('EvaluateCandidateUseCase');
-  private readonly rankCandidatesForJobUseCase =
-    this.container.resolve<RankCandidatesForJobUseCase>('RankCandidatesForJobUseCase');
-  private readonly batchEvaluationUseCase =
-    this.container.resolve<BatchEvaluationUseCase>('BatchEvaluationUseCase');
+  private get evaluateCandidateUseCase() {
+    return Container.getInstance().resolve<EvaluateCandidateUseCase>('EvaluateCandidateUseCase');
+  }
+  private get rankCandidatesForJobUseCase() {
+    return Container.getInstance().resolve<RankCandidatesForJobUseCase>('RankCandidatesForJobUseCase');
+  }
+  private get batchEvaluationUseCase() {
+    return Container.getInstance().resolve<BatchEvaluationUseCase>('BatchEvaluationUseCase');
+  }
 
   constructor() {
     super();
@@ -24,32 +27,38 @@ export class EvaluationController extends BaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ) => {
     try {
-      const result = await this.evaluateCandidateUseCase.execute(req.body);
+      const authReq = req as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string);
+
+      if (!organizationId) {
+        return this.badRequest(res, 'Organization ID is required.', 'MISSING_ORGANIZATION_ID');
+      }
+
+      const result = await this.evaluateCandidateUseCase.execute({
+        ...req.body,
+        organizationId
+      });
 
       if (!result.success) {
         const isNotFound = result.code === 'CANDIDATE_NOT_FOUND' || result.code === 'JOB_NOT_FOUND';
         if (isNotFound) {
-          this.notFound(res, result.error, result.code);
-          return;
+          return this.notFound(res, result.error as string, result.code);
         }
 
-        this.serverError(res, { message: result.error, code: result.code });
-        return;
+        return this.serverError(res, { message: result.error as string, code: result.code });
       }
 
       const dto = EvaluationTransformer.toDTO(result.data);
       
       // Emit real-time events
-      const tenantId = (req as any).user?.tenantId || (req.headers['x-tenant-id'] as string) || 'org-123';
-      
-      wsService.emit(tenantId, 'EVALUATION_COMPLETED', dto);
-      wsService.emit(tenantId, 'RANKINGS_UPDATED', { jobId: dto.jobId });
+      wsService.emit(organizationId, 'EVALUATION_COMPLETED', dto);
+      wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: dto.jobId });
 
-      this.created(res, dto);
+      return this.created(res, dto);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
@@ -57,26 +66,32 @@ export class EvaluationController extends BaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ) => {
     try {
+      const authReq = req as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string);
+
+      if (!organizationId) {
+        return this.badRequest(res, 'Organization ID is required.', 'MISSING_ORGANIZATION_ID');
+      }
+
       const result = await this.rankCandidatesForJobUseCase.execute({
         jobId: req.params.jobId as string,
+        organizationId
       });
 
       if (!result.success) {
         const isNotFound = result.code === 'JOB_NOT_FOUND';
         if (isNotFound) {
-          this.notFound(res, result.error, result.code);
-          return;
+          return this.notFound(res, result.error as string, result.code);
         }
 
-        this.badRequest(res, result.error, result.code);
-        return;
+        return this.badRequest(res, result.error as string, result.code);
       }
 
-      this.ok(res, result.data);
+      return this.ok(res, result.data);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
@@ -84,37 +99,44 @@ export class EvaluationController extends BaseController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ) => {
     try {
-      const result = await this.batchEvaluationUseCase.execute(req.body);
+      const authReq = req as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string);
+
+      if (!organizationId) {
+        return this.badRequest(res, 'Organization ID is required.', 'MISSING_ORGANIZATION_ID');
+      }
+
+      const result = await this.batchEvaluationUseCase.execute({
+        ...req.body,
+        organizationId
+      });
 
       if (!result.success) {
-        this.serverError(res, { message: result.error, code: result.code });
-        return;
+        return this.serverError(res, { message: result.error as string, code: result.code });
       }
 
       // Transform successful evaluations
-      const transformedSuccessful = result.data.successful.map((e) =>
+      const transformedSuccessful = result.data.successful.map((e: any) =>
         EvaluationTransformer.toDTO(e),
       );
 
       // Emit real-time events for each successful evaluation
-      const tenantId = (req as any).user?.tenantId || (req.headers['x-tenant-id'] as string) || 'org-123';
-      
-      transformedSuccessful.forEach((dto) => {
-        wsService.emit(tenantId, 'EVALUATION_COMPLETED', dto);
+      transformedSuccessful.forEach((dto: any) => {
+        wsService.emit(organizationId, 'EVALUATION_COMPLETED', dto);
       });
 
       if (transformedSuccessful.length > 0) {
-        wsService.emit(tenantId, 'RANKINGS_UPDATED', { jobId: req.body.jobId });
+        wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: req.body.jobId });
       }
 
-      this.ok(res, {
+      return this.ok(res, {
         successful: transformedSuccessful,
         failed: result.data.failed,
       });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 }

@@ -10,6 +10,7 @@ export interface MoveCandidateInput {
   candidateId: string;
   pipelineId: string;
   newStageId: string;
+  organizationId: string;
   movedBy: string;
   reason?: string;
   notes?: string;
@@ -23,7 +24,7 @@ export class MoveCandidateThroughPipelineUseCase {
   ) {}
 
   async execute(input: MoveCandidateInput): Promise<CandidatePipelineStatus> {
-    const pipeline = await this.pipelineRepository.findById(input.pipelineId);
+    const pipeline = await this.pipelineRepository.findById(input.pipelineId, input.organizationId);
     if (!pipeline) {
       throw new NotFoundError(`Pipeline with ID ${input.pipelineId} not found`);
     }
@@ -33,7 +34,7 @@ export class MoveCandidateThroughPipelineUseCase {
       throw new NotFoundError(`Stage with ID ${input.newStageId} not found in pipeline ${input.pipelineId}`);
     }
 
-    let status = await this.statusRepository.findByCandidateId(input.candidateId);
+    let status = await this.statusRepository.findByCandidateId(input.candidateId, input.organizationId);
     let fromStageId: string | null = null;
 
     if (!status) {
@@ -41,6 +42,7 @@ export class MoveCandidateThroughPipelineUseCase {
         id: uuidv4(),
         candidateId: input.candidateId,
         pipelineId: input.pipelineId,
+        organizationId: input.organizationId,
         currentStageId: input.newStageId,
         stageHistory: [],
         notes: input.notes,
@@ -55,8 +57,10 @@ export class MoveCandidateThroughPipelineUseCase {
 
     await this.eventEmitter.emit({
       eventType: 'CandidateMovedStageEvent',
+      timestamp: new Date(),
       payload: {
         candidateId: input.candidateId,
+        organizationId: input.organizationId,
         pipelineId: input.pipelineId,
         fromStageId,
         toStageId: input.newStageId,

@@ -11,6 +11,7 @@ import { logger } from '../../infrastructure/logging/logger';
 export interface BatchEvaluationInput {
   jobId: string;
   candidateIds: string[];
+  organizationId: string;
 }
 
 export interface BatchEvaluationOutput {
@@ -46,6 +47,7 @@ export class BatchEvaluationUseCase {
           const result = await this.evaluateCandidateUseCase.execute({
             candidateId,
             jobId: input.jobId,
+            organizationId: input.organizationId,
           });
 
           return { candidateId, result };

@@ -8,23 +8,36 @@ export class InMemoryCandidatePipelineStatusRepository implements ICandidatePipe
     this.statuses.set(status.getId(), status);
   }
 
-  async findById(id: string): Promise<CandidatePipelineStatus | null> {
-    return this.statuses.get(id) || null;
+  async findById(id: string, organizationId: string): Promise<CandidatePipelineStatus | null> {
+    const status = this.statuses.get(id);
+    if (status && status.getOrganizationId() === organizationId) {
+      return status;
+    }
+    return null;
   }
 
-  async findByCandidateId(candidateId: string): Promise<CandidatePipelineStatus | null> {
-    return Array.from(this.statuses.values()).find((s) => s.getCandidateId() === candidateId) || null;
+  async findByCandidateId(candidateId: string, organizationId: string): Promise<CandidatePipelineStatus | null> {
+    return Array.from(this.statuses.values()).find(
+      (s) => s.getCandidateId() === candidateId && s.getOrganizationId() === organizationId
+    ) || null;
   }
 
-  async findByPipelineId(pipelineId: string): Promise<CandidatePipelineStatus[]> {
-    return Array.from(this.statuses.values()).filter((s) => s.getPipelineId() === pipelineId);
+  async findByPipelineId(pipelineId: string, organizationId: string): Promise<CandidatePipelineStatus[]> {
+    return Array.from(this.statuses.values()).filter(
+      (s) => s.getPipelineId() === pipelineId && s.getOrganizationId() === organizationId
+    );
   }
 
-  async findByStageId(stageId: string): Promise<CandidatePipelineStatus[]> {
-    return Array.from(this.statuses.values()).filter((s) => s.getCurrentStageId() === stageId);
+  async findByStageId(stageId: string, organizationId: string): Promise<CandidatePipelineStatus[]> {
+    return Array.from(this.statuses.values()).filter(
+      (s) => s.getCurrentStageId() === stageId && s.getOrganizationId() === organizationId
+    );
   }
 
-  async delete(id: string): Promise<void> {
-    this.statuses.delete(id);
+  async delete(id: string, organizationId: string): Promise<void> {
+    const existing = this.statuses.get(id);
+    if (existing && existing.getOrganizationId() === organizationId) {
+      this.statuses.delete(id);
+    }
   }
 }

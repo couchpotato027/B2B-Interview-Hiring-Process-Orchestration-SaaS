@@ -1,7 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Droppable } from '@hello-pangea/dnd';
+import { useDroppable } from '@dnd-kit/core';
+import {
+    SortableContext,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Column as ColumnType, Candidate } from './mockData';
 import { CandidateCard } from './CandidateCard';
 import { MoreHorizontal } from 'lucide-react';
@@ -9,11 +13,28 @@ import { MoreHorizontal } from 'lucide-react';
 interface ColumnProps {
     column: ColumnType;
     candidates: Candidate[];
+    isUpdating?: Record<string, boolean>;
+    selection: {
+        selectedIds: string[];
+        isSelected: (id: string) => boolean;
+        toggleSelect: (id: string) => void;
+        handleShiftClick: (id: string, lastSelectedId: string | null) => void;
+    };
 }
 
-export function KanbanColumn({ column, candidates }: ColumnProps) {
+export function KanbanColumn({ column, candidates, isUpdating = {}, selection }: ColumnProps) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: column.id,
+    });
+
     return (
-        <div className="flex-shrink-0 w-80 flex flex-col max-h-full bg-slate-50/80 rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
+        <div 
+            ref={setNodeRef}
+            className={`
+                flex-shrink-0 w-80 flex flex-col max-h-full bg-slate-50/80 rounded-[24px] border transition-all duration-200 overflow-hidden
+                ${isOver ? 'border-[#c8ff00] ring-4 ring-[#c8ff00]/10 shadow-lg' : 'border-slate-100 shadow-sm'}
+            `}
+        >
             <div className="flex items-center justify-between px-5 pt-5 pb-3 bg-transparent">
                 <div className="flex items-center gap-3">
                     <h3 className="font-bold text-slate-900 text-sm">{column.title}</h3>
@@ -26,29 +47,22 @@ export function KanbanColumn({ column, candidates }: ColumnProps) {
                 </button>
             </div>
 
-            <Droppable droppableId={column.id}>
-                {(provided, snapshot) => (
-                    <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        shallow={true}
-                        className={`
-                            flex-1 px-4 pb-4 overflow-y-auto min-h-[150px] transition-colors duration-200
-                            scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent rounded-b-[24px]
-                            ${snapshot.isDraggingOver ? 'bg-[#c8ff00]/5 ring-inset ring-2 ring-[#c8ff00]/50' : ''}
-                        `}
-                    >
-                        {candidates.map((candidate, index) => (
-                            <CandidateCard
-                                key={candidate.id}
-                                candidate={candidate}
-                                index={index}
-                            />
-                        ))}
-                        {provided.placeholder}
-                    </div>
-                )}
-            </Droppable>
+            <div className="flex-1 px-4 pb-4 overflow-y-auto min-h-[150px] scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent rounded-b-[24px]">
+                <SortableContext
+                    id={column.id}
+                    items={candidates.map(c => c.id)}
+                    strategy={verticalListSortingStrategy}
+                >
+                    {candidates.map((candidate) => (
+                        <CandidateCard
+                            key={candidate.id}
+                            candidate={candidate}
+                            loading={isUpdating[candidate.id]}
+                            selection={selection}
+                        />
+                    ))}
+                </SortableContext>
+            </div>
         </div>
     );
 }

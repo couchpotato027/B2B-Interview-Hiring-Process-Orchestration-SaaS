@@ -9,6 +9,9 @@ export interface JobDTO {
   preferredSkills: string[];
   requiredExperience: number;
   status: string;
+  _count: {
+    candidates: number;
+  };
 }
 
 export class JobTransformer {
@@ -22,6 +25,9 @@ export class JobTransformer {
       preferredSkills: job.getPreferredSkills(),
       requiredExperience: job.getRequiredExperience(),
       status: job.getStatus(),
+      _count: {
+        candidates: (job as any).candidateCount || 0, // Fallback to 0 if not provided
+      },
     };
   }
 

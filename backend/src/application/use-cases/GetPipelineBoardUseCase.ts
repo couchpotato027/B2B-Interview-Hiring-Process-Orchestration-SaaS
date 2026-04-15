@@ -26,8 +26,8 @@ export class GetPipelineBoardUseCase {
     private readonly candidateRepository: ICandidateRepository
   ) {}
 
-  async execute(pipelineId: string): Promise<PipelineBoardData> {
-    const pipeline = await this.pipelineRepository.findById(pipelineId);
+  async execute(pipelineId: string, organizationId: string): Promise<PipelineBoardData> {
+    const pipeline = await this.pipelineRepository.findById(pipelineId, organizationId);
     if (!pipeline) {
       throw new NotFoundError(`Pipeline with ID ${pipelineId} not found`);
     }
@@ -36,11 +36,11 @@ export class GetPipelineBoardUseCase {
     const boardStages = [];
 
     for (const stage of stages) {
-      const statuses = await this.statusRepository.findByStageId(stage.getId());
+      const statuses = await this.statusRepository.findByStageId(stage.getId(), organizationId);
       const stageCandidates = [];
 
       for (const status of statuses) {
-        const candidate = await this.candidateRepository.findById(status.getCandidateId());
+        const candidate = await this.candidateRepository.findById(status.getCandidateId(), organizationId);
         if (candidate) {
           stageCandidates.push({
             id: candidate.getId(),

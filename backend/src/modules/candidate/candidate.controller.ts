@@ -91,3 +91,14 @@ export const hireCandidate = async (req: AppRequest, res: Response, next: NextFu
         next(error);
     }
 };
+
+export const bulkUpdateCandidates = async (req: AppRequest, res: Response, next: NextFunction) => {
+    try {
+        const tenantId = req.user!.tenantId;
+        const { candidateIds, action, payload } = req.body;
+        const result = await candidateService.bulkUpdateCandidates(tenantId, candidateIds, action, payload);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};

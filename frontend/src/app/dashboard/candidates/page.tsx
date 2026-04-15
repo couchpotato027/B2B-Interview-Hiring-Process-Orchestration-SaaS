@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, MoreVertical, Plus, X, Users } from 'lucide-react';
 import { candidateApi, pipelineApi } from '@/lib/api';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import BulkActionsToolbar from '@/components/candidates/BulkActionsToolbar';
 
 interface CandidateItem {
     id: string;
@@ -32,6 +34,37 @@ export default function CandidatesPage() {
     // Form state
     const [form, setForm] = useState({ firstName: '', lastName: '', email: '', pipelineId: '', initialStageId: '' });
     const [formError, setFormError] = useState('');
+    const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+
+    const { 
+        selectedIds, 
+        isSelected, 
+        toggleSelect, 
+        toggleSelectAll, 
+        clearSelection, 
+        handleShiftClick 
+    } = useBulkSelection(candidates);
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (showAddModal) return;
+            
+            // Cmd+A or Ctrl+A
+            if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+                e.preventDefault();
+                toggleSelectAll(candidates.map(c => c.id));
+            }
+            
+            // Escape
+            if (e.key === 'Escape') {
+                clearSelection();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [candidates, toggleSelectAll, clearSelection, showAddModal]);
 
     const load = async () => {
         try {
@@ -130,7 +163,15 @@ export default function CandidatesPage() {
                             <table className="min-w-full divide-y divide-slate-100">
                                 <thead className="bg-slate-50/50">
                                     <tr>
-                                        <th className="py-4 pl-4 pr-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider sm:pl-6">Candidate</th>
+                                        <th className="py-4 pl-4 pr-3 text-left sm:pl-6 w-10">
+                                            <input 
+                                                type="checkbox" 
+                                                className="h-4 w-4 rounded border-slate-300 text-[#0a0f1a] focus:ring-[#c8ff00] cursor-pointer accent-[#c8ff00]"
+                                                checked={candidates.length > 0 && selectedIds.length === candidates.length}
+                                                onChange={() => toggleSelectAll(candidates.map(c => c.id))}
+                                            />
+                                        </th>
+                                        <th className="py-4 pl-4 pr-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Candidate</th>
                                         <th className="px-3 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Pipeline</th>
                                         <th className="px-3 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Current Stage</th>
                                         <th className="px-3 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
@@ -147,8 +188,27 @@ export default function CandidatesPage() {
                                             </td>
                                         </tr>
                                     ) : candidates.map((person) => (
-                                        <tr key={person.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <tr 
+                                            key={person.id} 
+                                            className={`transition-colors ${isSelected(person.id) ? 'bg-[#c8ff00]/5 hover:bg-[#c8ff00]/10' : 'hover:bg-slate-50/50'}`}
+                                        >
                                             <td className="whitespace-nowrap py-5 pl-4 pr-3 text-sm sm:pl-6">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="h-4 w-4 rounded border-slate-300 text-[#0a0f1a] focus:ring-[#c8ff00] cursor-pointer accent-[#c8ff00]"
+                                                    checked={isSelected(person.id)}
+                                                    onChange={(e) => {
+                                                        const isShift = (e.nativeEvent as MouseEvent).shiftKey;
+                                                        if (isShift) {
+                                                            handleShiftClick(person.id, lastSelectedId);
+                                                        } else {
+                                                            toggleSelect(person.id);
+                                                        }
+                                                        setLastSelectedId(person.id);
+                                                    }}
+                                                />
+                                            </td>
+                                            <td className="whitespace-nowrap py-5 pl-4 pr-3 text-sm">
                                                 <div className="flex items-center gap-4">
                                                     <div className="h-11 w-11 rounded-full bg-[#f8fafc] border border-slate-200 flex items-center justify-center font-bold text-slate-600 shadow-sm">
                                                         {person.firstName.charAt(0)}
@@ -207,7 +267,6 @@ export default function CandidatesPage() {
                 </div>
             </div>
 
-            {/* Add Candidate Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex min-h-full items-center justify-center p-4">
@@ -268,6 +327,13 @@ export default function CandidatesPage() {
                     </div>
                 </div>
             )}
+
+            <BulkActionsToolbar 
+                selectedIds={selectedIds}
+                onClear={clearSelection}
+                onActionComplete={load}
+                availableStages={pipelines.flatMap(p => p.stages)}
+            />
         </div>
     );
 }

@@ -88,9 +88,10 @@ export const candidateApi = {
     create: (data: unknown) => fetchWithAuth('/candidates', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: unknown) => fetchWithAuth(`/candidates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => fetchWithAuth(`/candidates/${id}`, { method: 'DELETE' }),
-    moveStage: (id: string, newStageId: string) => fetchWithAuth(`/candidates/${id}/transition`, { method: 'POST', body: JSON.stringify({ newStageId }) }),
+    moveStage: (id: string, newStageId: string) => fetchWithAuth(`/candidates/${id}/stage`, { method: 'PUT', body: JSON.stringify({ newStageId }) }),
     reject: (id: string) => fetchWithAuth(`/candidates/${id}/reject`, { method: 'POST' }),
     hire: (id: string) => fetchWithAuth(`/candidates/${id}/hire`, { method: 'POST' }),
+    bulkUpdate: (candidateIds: string[], action: string, payload: any) => fetchWithAuth('/candidates/bulk-update', { method: 'POST', body: JSON.stringify({ candidateIds, action, payload }) }),
 };
 
 // ─── Pipelines ─────────────────────────────────────────────────────

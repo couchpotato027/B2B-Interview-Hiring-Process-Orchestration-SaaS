@@ -18,7 +18,7 @@ import type { Result } from '../../shared/Result';
 export interface ProcessResumeInput {
   file: Buffer;
   fileName: string;
-  tenantId: string;
+  organizationId: string;
   candidateEmail?: string;
 }
 
@@ -65,13 +65,13 @@ export class ProcessResumeUseCase {
         };
       }
 
-      const existingCandidate = await this.dependencies.candidateRepository.findByEmail(resolvedEmail);
+      const existingCandidate = await this.dependencies.candidateRepository.findByEmail(resolvedEmail, input.organizationId);
       const candidate = existingCandidate
-        ? this.buildUpdatedCandidate(existingCandidate, parsedResumeData, mergedSkills, resolvedEmail, input.tenantId)
-        : this.buildNewCandidate(parsedResumeData, mergedSkills, resolvedEmail, input.tenantId);
+        ? this.buildUpdatedCandidate(existingCandidate, parsedResumeData, mergedSkills, resolvedEmail, input.organizationId)
+        : this.buildNewCandidate(parsedResumeData, mergedSkills, resolvedEmail, input.organizationId);
 
       const savedCandidate = existingCandidate
-        ? await this.dependencies.candidateRepository.update(existingCandidate.getId(), candidate)
+        ? await this.dependencies.candidateRepository.update(existingCandidate.getId(), candidate, input.organizationId)
         : await this.dependencies.candidateRepository.save(candidate);
 
       const resume = new Resume({
@@ -85,6 +85,7 @@ export class ProcessResumeUseCase {
           skills: mergedSkills,
         },
         uploadedAt: new Date(),
+        organizationId: input.organizationId,
       });
 
       const savedResume = await this.dependencies.resumeRepository.save(resume);
@@ -95,6 +96,7 @@ export class ProcessResumeUseCase {
           timestamp: new Date(),
           payload: {
             candidateId: savedCandidate.getId(),
+            organizationId: input.organizationId,
             name: savedCandidate.getName(),
             email: savedCandidate.getEmail(),
             timestamp: new Date(),
@@ -110,6 +112,7 @@ export class ProcessResumeUseCase {
         payload: {
           candidateId: savedCandidate.getId(),
           resumeId: savedResume.getId(),
+          organizationId: input.organizationId,
           timestamp: new Date(),
         },
       };
@@ -141,14 +144,15 @@ export class ProcessResumeUseCase {
     parsedResumeData: ParsedResumeData,
     skills: string[],
     email: string,
-    tenantId: string,
+    organizationId: string,
   ): Candidate {
     return new Candidate({
       id: randomUUID(),
+      pipelineId: 'default-pipeline',
       name: parsedResumeData.name?.trim() || this.getNameFromEmail(email),
       email,
       phone: parsedResumeData.phone?.trim() || 'Not provided',
-      tenantId,
+      organizationId,
       resumeId: randomUUID(),
       skills,
       yearsOfExperience: this.parseYearsOfExperience(parsedResumeData.experience),
@@ -163,14 +167,15 @@ export class ProcessResumeUseCase {
     parsedResumeData: ParsedResumeData,
     skills: string[],
     email: string,
-    tenantId: string,
+    organizationId: string,
   ): Candidate {
     return new Candidate({
       id: existingCandidate.getId(),
+      pipelineId: existingCandidate.getPipelineId(),
       name: parsedResumeData.name?.trim() || existingCandidate.getName(),
       email,
       phone: parsedResumeData.phone?.trim() || existingCandidate.getPhone(),
-      tenantId,
+      organizationId,
       resumeId: existingCandidate.getResumeId(),
       skills: this.mergeSkills(existingCandidate.getSkills(), skills),
       yearsOfExperience: Math.max(

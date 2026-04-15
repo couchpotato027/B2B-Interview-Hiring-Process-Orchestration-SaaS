@@ -4,6 +4,7 @@ export interface BulkMoveInput {
   candidateIds: string[];
   pipelineId: string;
   newStageId: string;
+  organizationId: string;
   movedBy: string;
   reason?: string;
 }
@@ -24,6 +25,7 @@ export class BulkMoveCandidatesUseCase {
             candidateId,
             pipelineId: input.pipelineId,
             newStageId: input.newStageId,
+            organizationId: input.organizationId,
             movedBy: input.movedBy,
             reason: input.reason,
           });

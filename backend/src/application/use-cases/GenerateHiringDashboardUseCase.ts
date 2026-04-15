@@ -3,16 +3,15 @@ import { DashboardData } from '../../domain/types/Analytics';
 import { cacheService } from '../../infrastructure/cache/CacheService';
 
 export class GenerateHiringDashboardUseCase {
-  private readonly CACHE_KEY = 'hiring_dashboard_metrics';
-
   constructor(private readonly analyticsService: AnalyticsService) {}
 
-  async execute(): Promise<DashboardData> {
-    const cached = cacheService.get<DashboardData>(this.CACHE_KEY);
+  async execute(organizationId: string): Promise<DashboardData> {
+    const cacheKey = `hiring_dashboard_${organizationId}`;
+    const cached = cacheService.get<DashboardData>(cacheKey);
     if (cached) return cached;
 
-    const metrics = await this.analyticsService.calculateHiringMetrics();
-    const velocity = await this.analyticsService.calculateHiringVelocity();
+    const metrics = await this.analyticsService.calculateHiringMetrics(organizationId);
+    const velocity = await this.analyticsService.calculateHiringVelocity(organizationId);
 
     const dashboard: DashboardData = {
       summary: {
@@ -33,7 +32,7 @@ export class GenerateHiringDashboardUseCase {
       }
     };
 
-    cacheService.set(this.CACHE_KEY, dashboard, 3600); // 1 hour TTL
+    cacheService.set(cacheKey, dashboard, 3600); // 1 hour TTL
     return dashboard;
   }
 }

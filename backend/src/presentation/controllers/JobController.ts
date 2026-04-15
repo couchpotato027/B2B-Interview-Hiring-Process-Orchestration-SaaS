@@ -6,112 +6,127 @@ import { ComparativeCandidateAnalysisUseCase } from '../../application/use-cases
 import { Container } from '../../infrastructure/di/Container';
 import type { IJobRepository } from '../../domain/repositories/IJobRepository';
 import { JobTransformer } from '../transformers/JobTransformer';
+import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
 
 export class JobController extends BaseController {
-  private readonly container = Container.getInstance();
-  private readonly createJobUseCase = this.container.resolve<CreateJobUseCase>('CreateJobUseCase');
-  private readonly jobRepository = this.container.resolve<IJobRepository>('JobRepository');
-  private readonly marketInsightsUseCase = this.container.resolve<JobMarketInsightsUseCase>('JobMarketInsightsUseCase');
-  private readonly comparativeAnalysisUseCase = this.container.resolve<ComparativeCandidateAnalysisUseCase>('ComparativeCandidateAnalysisUseCase');
+  private get createJobUseCase() {
+    return Container.getInstance().resolve<CreateJobUseCase>('CreateJobUseCase');
+  }
+  private get jobRepository() {
+    return Container.getInstance().resolve<IJobRepository>('JobRepository');
+  }
+  private get marketInsightsUseCase() {
+    return Container.getInstance().resolve<JobMarketInsightsUseCase>('JobMarketInsightsUseCase');
+  }
+  private get comparativeAnalysisUseCase() {
+    return Container.getInstance().resolve<ComparativeCandidateAnalysisUseCase>('ComparativeCandidateAnalysisUseCase');
+  }
 
   constructor() {
     super();
   }
 
-  public createJob = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public createJob = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const tenantId = (req as any).user?.tenantId || (req.headers['x-tenant-id'] as string);
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
       
-      if (!tenantId) {
-        this.badRequest(res, 'Organization ID (tenantId) is required.', 'MISSING_TENANT_ID');
-        return;
-      }
-
       const result = await this.createJobUseCase.execute({
         ...req.body,
-        tenantId,
+        organizationId,
       });
 
       if (!result.success) {
-        this.badRequest(res, result.error, result.code);
-        return;
+        return this.badRequest(res, result.error as string, result.code);
       }
 
-      this.created(res, JobTransformer.toDTO(result.data));
+      return this.rawOk(res, JobTransformer.toDTO(result.data));
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
-  public getJobById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public getJobById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const job = await this.jobRepository.findById(req.params.id as string);
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+
+      const job = await this.jobRepository.findById(req.params.id as string, organizationId);
 
       if (!job) {
-        this.notFound(res, `Job ${req.params.id} not found.`, 'JOB_NOT_FOUND');
-        return;
+        return this.notFound(res, `Job ${req.params.id} not found.`, 'JOB_NOT_FOUND');
       }
 
-      this.ok(res, JobTransformer.toDTO(job));
+      return this.rawOk(res, JobTransformer.toDTO(job));
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
-  public getJobs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public getJobs = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+
       const jobs =
         typeof req.query.status === 'string'
-          ? await this.jobRepository.findByStatus(req.query.status as 'open' | 'closed')
-          : await this.jobRepository.findAll();
+          ? await this.jobRepository.findByStatus(req.query.status as 'open' | 'closed', organizationId)
+          : await this.jobRepository.findAll(organizationId);
 
-      this.ok(res, JobTransformer.toCollectionDTO(jobs));
+      return this.rawOk(res, JobTransformer.toCollectionDTO(jobs));
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
-  public getMarketInsights = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public getMarketInsights = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+
       const result = await this.marketInsightsUseCase.execute({
         jobId: req.params.id as string,
+        organizationId
       });
 
       if (!result.success) {
-        this.badRequest(res, result.error, result.code);
+        this.badRequest(res, result.error as string, result.code);
         return;
       }
 
-      this.ok(res, result.data);
+      this.rawOk(res, result.data);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
-  public getComparativeAnalysis = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public getComparativeAnalysis = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+
       const candidateIds = typeof req.query.candidateIds === 'string' 
         ? req.query.candidateIds.split(',') 
         : (req.query.candidateIds as string[]);
 
       if (!candidateIds || candidateIds.length < 2) {
-        this.badRequest(res, 'At least 2 candidate IDs are required.', 'INVALID_PARAMETERS');
-        return;
+        return this.badRequest(res, 'At least 2 candidate IDs are required.', 'INVALID_PARAMETERS');
       }
 
       const result = await this.comparativeAnalysisUseCase.execute({
         jobId: req.params.id as string,
         candidateIds,
+        organizationId
       });
 
       if (!result.success) {
-        this.badRequest(res, result.error, result.code);
+        this.badRequest(res, result.error as string, result.code);
         return;
       }
 
-      this.ok(res, result.data);
+      this.rawOk(res, result.data);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 }

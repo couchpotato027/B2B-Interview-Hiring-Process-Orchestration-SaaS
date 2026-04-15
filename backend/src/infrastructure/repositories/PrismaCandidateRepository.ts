@@ -1,0 +1,126 @@
+import { PrismaClient } from '@prisma/client';
+import { Candidate, CandidateStatus } from '../../domain/entities/Candidate';
+import { ICandidateRepository, CandidateFilters } from '../../domain/repositories/ICandidateRepository';
+import { PaginatedResult } from '../../domain/types/Pagination';
+import { prisma } from '../database/prisma.client';
+
+export class PrismaCandidateRepository implements ICandidateRepository {
+  private prisma: PrismaClient;
+
+  constructor() {
+    this.prisma = prisma;
+  }
+
+  async findById(id: string, organizationId: string): Promise<Candidate | null> {
+    const model = await this.prisma.candidate.findFirst({
+      where: { id, tenantId: organizationId },
+    });
+    return model ? this.mapToEntity(model) : null;
+  }
+
+  async findAll(organizationId: string): Promise<Candidate[]> {
+    const models = await this.prisma.candidate.findMany({
+      where: { tenantId: organizationId },
+    });
+    return models.map(this.mapToEntity);
+  }
+
+  async save(candidate: Candidate): Promise<Candidate> {
+    const data = {
+      id: candidate.getId(),
+      firstName: candidate.getName().split(' ')[0] || '',
+      lastName: candidate.getName().split(' ').slice(1).join(' ') || '',
+      email: candidate.getEmail(),
+      tenantId: candidate.getOrganizationId(),
+      pipelineId: candidate.getPipelineId(),
+      status: candidate.getStatus().toUpperCase(),
+    };
+
+    const saved = await this.prisma.candidate.upsert({
+      where: { id: candidate.getId() },
+      create: data,
+      update: data,
+    });
+
+    return this.mapToEntity(saved);
+  }
+
+  async update(id: string, candidate: Candidate, organizationId: string): Promise<Candidate> {
+    const data = {
+      firstName: candidate.getName().split(' ')[0] || '',
+      lastName: candidate.getName().split(' ').slice(1).join(' ') || '',
+      email: candidate.getEmail(),
+      status: candidate.getStatus().toUpperCase(),
+    };
+
+    const updated = await this.prisma.candidate.update({
+      where: { id, tenantId: organizationId },
+      data,
+    });
+
+    return this.mapToEntity(updated);
+  }
+
+  async delete(id: string, organizationId: string): Promise<void> {
+    await this.prisma.candidate.delete({
+      where: { id, tenantId: organizationId },
+    });
+  }
+
+  async findByEmail(email: string, organizationId: string): Promise<Candidate | null> {
+    const model = await this.prisma.candidate.findFirst({
+      where: { email, tenantId: organizationId },
+    });
+    return model ? this.mapToEntity(model) : null;
+  }
+
+  async findWithFilters(filters: CandidateFilters, organizationId: string): Promise<PaginatedResult<Candidate>> {
+    const { page = 1, limit = 10, status } = filters;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      tenantId: organizationId,
+      ...(status && { status: status.toUpperCase() }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.candidate.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.candidate.count({ where }),
+    ]);
+
+    return {
+      items: items.map(this.mapToEntity),
+      metadata: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1
+      }
+    };
+  }
+
+  private mapToEntity(model: any): Candidate {
+    return new Candidate({
+      id: model.id,
+      name: `${model.firstName} ${model.lastName}`.trim(),
+      email: model.email,
+      phone: '000-000-0000', 
+      organizationId: model.tenantId,
+      pipelineId: model.pipelineId,
+      resumeId: model.resumeUrl || 'NONE',
+      skills: [],
+      yearsOfExperience: 0,
+      education: 'N/A',
+      projects: [],
+      status: model.status.toLowerCase() as CandidateStatus,
+      createdAt: model.createdAt,
+    });
+  }
+}

@@ -20,11 +20,11 @@ export class GenerateJobReportUseCase {
     private readonly analyticsService: AnalyticsService
   ) {}
 
-  async execute(jobId: string): Promise<JobReport> {
-    const job = await this.jobRepository.findById(jobId);
+  async execute(jobId: string, organizationId: string): Promise<JobReport> {
+    const job = await this.jobRepository.findById(jobId, organizationId);
     if (!job) throw new NotFoundError('Job not found');
 
-    const evaluations = await this.evaluationRepository.findByJobId(jobId);
+    const evaluations = await this.evaluationRepository.findByJobId(jobId, organizationId);
     const avgScore = evaluations.length > 0
       ? evaluations.reduce((acc, e) => acc + e.getOverallScore(), 0) / evaluations.length
       : 0;
@@ -35,7 +35,7 @@ export class GenerateJobReportUseCase {
 
     const topCandidates = await Promise.all(
       topEvaluations.map(async (e) => {
-        const candidate = await this.candidateRepository.findById(e.getCandidateId());
+        const candidate = await this.candidateRepository.findById(e.getCandidateId(), organizationId);
         return {
           id: e.getCandidateId(),
           name: candidate?.getName() || 'Unknown',

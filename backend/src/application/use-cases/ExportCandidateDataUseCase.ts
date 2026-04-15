@@ -15,8 +15,8 @@ export class ExportCandidateDataUseCase {
     private readonly pipelineRepository: IPipelineRepository
   ) {}
 
-  async execute(filters: ExportFilters = {}): Promise<string> {
-    let candidates = await this.candidateRepository.findAll();
+  async execute(organizationId: string, filters: ExportFilters = {}): Promise<string> {
+    let candidates = await this.candidateRepository.findAll(organizationId);
 
     if (filters.status) {
         candidates = candidates.filter(c => c.getStatus() === filters.status);
@@ -25,11 +25,11 @@ export class ExportCandidateDataUseCase {
     const headers = ['Name', 'Email', 'Skills', 'Years of Experience', 'Education', 'Status', 'Current Stage'];
     const rows = await Promise.all(
       candidates.map(async (c) => {
-        const status = await this.statusRepository.findByCandidateId(c.getId());
+        const status = await this.statusRepository.findByCandidateId(c.getId(), organizationId);
         let stageName = 'N/A';
         
         if (status) {
-            const pipeline = await this.pipelineRepository.findById(status.getPipelineId());
+            const pipeline = await this.pipelineRepository.findById(status.getPipelineId(), organizationId);
             const stage = pipeline?.getStageById(status.getCurrentStageId());
             stageName = stage?.getName() || 'Unknown';
         }

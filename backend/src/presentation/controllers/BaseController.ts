@@ -8,6 +8,10 @@ export abstract class BaseController {
     });
   }
 
+  protected rawOk<T>(res: Response, data: T): Response {
+    return res.status(200).json(data);
+  }
+
   protected created<T>(res: Response, data: T): Response {
     return res.status(201).json({
       success: true,

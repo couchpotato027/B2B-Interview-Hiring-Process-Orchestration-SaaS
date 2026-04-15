@@ -6,19 +6,23 @@ import type { PaginatedResult } from '../../domain/types/Pagination';
 export class InMemoryCandidateRepository implements ICandidateRepository {
   private readonly store = new Map<string, Candidate>();
 
-  public async findById(id: string): Promise<Candidate | null> {
-    return this.store.get(id) ?? null;
+  public async findById(id: string, organizationId: string): Promise<Candidate | null> {
+    const candidate = this.store.get(id);
+    if (candidate && candidate.getOrganizationId() === organizationId) {
+      return candidate;
+    }
+    return null;
   }
 
-  public async findAll(): Promise<Candidate[]> {
-    return Array.from(this.store.values());
+  public async findAll(organizationId: string): Promise<Candidate[]> {
+    return Array.from(this.store.values()).filter(c => c.getOrganizationId() === organizationId);
   }
 
-  public async findByEmail(email: string): Promise<Candidate | null> {
+  public async findByEmail(email: string, organizationId: string): Promise<Candidate | null> {
     const normalizedEmail = email.trim().toLowerCase();
 
     for (const candidate of this.store.values()) {
-      if (candidate.getEmail() === normalizedEmail) {
+      if (candidate.getEmail() === normalizedEmail && candidate.getOrganizationId() === organizationId) {
         return candidate;
       }
     }
@@ -26,15 +30,11 @@ export class InMemoryCandidateRepository implements ICandidateRepository {
     return null;
   }
 
-  public async findWithFilters(filters: CandidateFilters): Promise<PaginatedResult<Candidate>> {
-    const { page, limit, status, tenantId } = filters;
-    let candidates = Array.from(this.store.values());
+  public async findWithFilters(filters: CandidateFilters, organizationId: string): Promise<PaginatedResult<Candidate>> {
+    const { page, limit, status } = filters;
+    let candidates = Array.from(this.store.values()).filter(c => c.getOrganizationId() === organizationId);
 
     // Applying filters
-    if (tenantId) {
-      candidates = candidates.filter((c) => c.getTenantId() === tenantId);
-    }
-
     if (status) {
       candidates = candidates.filter((c) => c.getStatus() === status);
     }
@@ -64,9 +64,10 @@ export class InMemoryCandidateRepository implements ICandidateRepository {
     return candidate;
   }
 
-  public async update(id: string, entity: Candidate): Promise<Candidate> {
-    if (!this.store.has(id)) {
-      throw new Error(`Candidate with id ${id} not found.`);
+  public async update(id: string, entity: Candidate, organizationId: string): Promise<Candidate> {
+    const existing = this.store.get(id);
+    if (!existing || existing.getOrganizationId() !== organizationId) {
+      throw new Error(`Candidate with id ${id} not found in your organization.`);
     }
 
     const candidate = this.alignEntityId(entity, id);
@@ -74,8 +75,11 @@ export class InMemoryCandidateRepository implements ICandidateRepository {
     return candidate;
   }
 
-  public async delete(id: string): Promise<void> {
-    this.store.delete(id);
+  public async delete(id: string, organizationId: string): Promise<void> {
+    const existing = this.store.get(id);
+    if (existing && existing.getOrganizationId() === organizationId) {
+      this.store.delete(id);
+    }
   }
 
   private ensureEntityId(entity: Candidate): Candidate {
