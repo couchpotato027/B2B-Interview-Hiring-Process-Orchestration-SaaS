@@ -1,14 +1,27 @@
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 
-// BullMQ requires maxRetriesPerRequest: null to allow blocking Redis commands.
-const redisConnection = new IORedis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
-    maxRetriesPerRequest: null,
-});
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
-export const slaQueue = new Queue('sla-monitoring-queue', { connection: redisConnection as any });
+let redisConnection: IORedis | null = null;
+let slaQueueInstance: Queue | null = null;
+
+try {
+  redisConnection = new IORedis(REDIS_URL, {
+    maxRetriesPerRequest: null,
+    lazyConnect: true,
+    retryStrategy: () => null, // Don't retry — fail gracefully
+  });
+  redisConnection.on('error', () => {}); // Suppress unhandled error events
+  slaQueueInstance = new Queue('sla-monitoring-queue', { connection: redisConnection as any });
+} catch {
+  console.warn('⚠️ BullMQ/Redis not available — SLA queue disabled');
+}
+
+export const slaQueue = slaQueueInstance;
 
 export const scheduleSlaCheck = async (candidateId: string, stageId: string, tenantId: string, delayMs: number) => {
+    if (!slaQueue) return;
     await slaQueue.add(
         'check-sla',
         { candidateId, stageId, tenantId },
@@ -17,6 +30,7 @@ export const scheduleSlaCheck = async (candidateId: string, stageId: string, ten
 };
 
 export const cancelSlaCheck = async (candidateId: string, stageId: string) => {
+    if (!slaQueue) return;
     const job = await slaQueue.getJob(`sla-${candidateId}-${stageId}`);
     if (job) {
         await job.remove();

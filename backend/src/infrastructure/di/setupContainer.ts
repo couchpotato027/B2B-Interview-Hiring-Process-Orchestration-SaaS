@@ -378,18 +378,30 @@ export const setupContainer = (): Container => {
 
   container.resolve<ObserverRegistry>('ObserverRegistry').registerAll();
 
-  // Initialize Scheduled Jobs
-  const scheduledAnalytics = new ScheduledAnalyticsService(
-    container.resolve('GenerateHiringDashboardUseCase'),
-    container.resolve('AnalyticsService')
-  );
-  scheduledAnalytics.start();
+  // Initialize Scheduled Jobs (non-critical - don't crash if Redis is unavailable)
+  try {
+    const scheduledAnalytics = new ScheduledAnalyticsService(
+      container.resolve('GenerateHiringDashboardUseCase'),
+      container.resolve('AnalyticsService')
+    );
+    scheduledAnalytics.start();
+  } catch (e) {
+    console.warn('⚠️ Scheduled Analytics disabled (Redis not available)');
+  }
 
-  // Initialize Background Workers
-  new FileProcessorWorker();
+  // Initialize Background Workers (non-critical)
+  try {
+    new FileProcessorWorker();
+  } catch (e) {
+    console.warn('⚠️ FileProcessorWorker disabled (Redis not available)');
+  }
   
-  // Initialize Maintenance Jobs
-  new CleanupOrphanedFilesJob().start();
+  // Initialize Maintenance Jobs (non-critical)
+  try {
+    new CleanupOrphanedFilesJob().start();
+  } catch (e) {
+    console.warn('⚠️ CleanupOrphanedFilesJob disabled (Redis not available)');
+  }
 
   return container;
 };

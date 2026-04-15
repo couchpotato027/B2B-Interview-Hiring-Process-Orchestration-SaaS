@@ -3,6 +3,11 @@ import { setupContainer } from './infrastructure/di/setupContainer';
 import { prisma } from './infrastructure/database/prisma.client';
 import { logger } from './infrastructure/logging/logger';
 
+// Catch ALL unhandled errors so Redis/BullMQ can never crash the process
+process.on('unhandledRejection', (reason) => {
+  console.warn('⚠️ Unhandled rejection (suppressed):', reason instanceof Error ? reason.message : reason);
+});
+
 const PORT = process.env.PORT || 3001;
 
 async function startServer() {
