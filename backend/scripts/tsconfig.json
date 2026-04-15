@@ -1,9 +1,12 @@
 {
-  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "rootDir": "..",
-    "outDir": "../dist/scripts",
-    "noEmit": true
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "types": ["node"]
   },
   "include": ["**/*.ts"]
 }
