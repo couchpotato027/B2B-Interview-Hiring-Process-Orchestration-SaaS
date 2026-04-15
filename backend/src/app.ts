@@ -1,6 +1,5 @@
-// Deployment Version: 1.0.5
+// Deployment Version: 2.0.0
 import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import { apiRouter } from './presentation/routes';
 import moduleRoutes from './routes';
@@ -11,11 +10,24 @@ dotenv.config();
 
 const app = express();
 
-// 1. GLOBAL MIDDLEWARE
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// ═══════════════════════════════════════════════════════
+// BULLETPROOF CORS — runs BEFORE everything else
+// ═══════════════════════════════════════════════════════
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+
+  // Immediately respond to preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
