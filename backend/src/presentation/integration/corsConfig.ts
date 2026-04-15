@@ -1,12 +1,7 @@
 import { CorsOptions } from 'cors';
-import { env } from '../../infrastructure/config/env';
 
 export const corsConfig: CorsOptions = {
-  origin: [
-    env.corsOrigin,
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-  ],
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [

@@ -19,7 +19,7 @@ export const createApp = () => {
   });
   app.use(
     cors({
-      origin: env.corsOrigin,
+      origin: true,
       credentials: true,
     }),
   );
