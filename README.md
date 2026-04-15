@@ -204,6 +204,9 @@ Responsive UI
 This project is created for academic purposes as part of a Software Design course.
 
 12. Acknowledgments
-Course Instructor
-Newton School
+    
+Course Instructor 
+
+Newton School 
+
 Google Gemini API
