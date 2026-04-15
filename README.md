@@ -146,10 +146,10 @@ GEMINI_MODEL="gemini-1.5-flash"
 npx prisma migrate dev
 npm run db:seed
 6.5 Run Application
-# Backend
+Backend
 npm run dev
 
-# Frontend
+Frontend
 cd ../frontend
 npm run dev
 6.6 Access
