@@ -36,6 +36,7 @@ export default function PipelineBoard() {
         toggleSelect, 
         toggleSelectAll, 
         clearSelection,
+        handleShiftClick
     } = useBulkSelection(allCandidates);
 
     useEffect(() => {
@@ -308,7 +309,8 @@ export default function PipelineBoard() {
                                         selection={{
                                             selectedIds,
                                             isSelected,
-                                            toggleSelect
+                                            toggleSelect,
+                                            handleShiftClick
                                         }}
                                     />
                                 );
