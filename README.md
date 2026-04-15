@@ -146,12 +146,18 @@ GEMINI_MODEL="gemini-1.5-flash"
 npx prisma migrate dev
 npm run db:seed
 6.5 Run Application
+
 Backend
+
 npm run dev
 
+
 Frontend
+
 cd ../frontend
+
 npm run dev
+
 6.6 Access
 Frontend: http://localhost:3000
 Backend: http://localhost:3001
