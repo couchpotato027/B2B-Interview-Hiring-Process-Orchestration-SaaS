@@ -31,7 +31,8 @@
     "src/index.ts",
     "src/shared/Result.ts",
     "src/shared/errors/**/*.ts",
-    "src/shared/types/**/*.ts"
+    "src/shared/types/**/*.ts",
+    "scripts/**/*.ts"
   ],
   "exclude": ["dist", "node_modules"]
 }
