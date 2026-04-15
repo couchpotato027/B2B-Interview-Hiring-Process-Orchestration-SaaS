@@ -5,6 +5,7 @@
     "moduleResolution": "node",
     "lib": ["ES2022"],
     "types": ["node"],
+    "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
     "noImplicitReturns": true,
@@ -30,8 +31,7 @@
     "src/index.ts",
     "src/shared/Result.ts",
     "src/shared/errors/**/*.ts",
-    "src/shared/types/**/*.ts",
-    "scripts/**/*.ts"
+    "src/shared/types/**/*.ts"
   ],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules", "scripts"]
 }
