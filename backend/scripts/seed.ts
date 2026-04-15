@@ -127,7 +127,7 @@ async function main() {
   ];
 
   for (let i = 0; i < candidateNames.length; i++) {
-    const [first, last] = candidateNames[i];
+    const [first, last] = candidateNames[i] as [string, string];
     const job = jobs[i % jobs.length];
     const stage = stages[i % stages.length];
 
@@ -135,8 +135,8 @@ async function main() {
       data: {
         tenantId: tenant.id,
         pipelineId: pipeline.id,
-        jobId: job.id,
-        currentStageId: stage.id,
+        jobId: job!.id,
+        currentStageId: stage!.id,
         firstName: first,
         lastName: last,
         email: `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
