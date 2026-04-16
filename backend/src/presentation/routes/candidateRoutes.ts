@@ -3,116 +3,38 @@ import { CandidateController } from '../controllers/CandidateController';
 import { uploadResumeMiddleware } from '../middleware/fileUploadMiddleware';
 
 const candidateRouter = Router();
+const ctrl = () => new CandidateController();
+
+// ─── Resume Upload ──────────────────────────────────────────────────────────
+candidateRouter.post('/upload', uploadResumeMiddleware.single('resume'), (req, res, next) => ctrl().uploadResume(req, res, next));
+
+// ─── Bulk Actions ───────────────────────────────────────────────────────────
+candidateRouter.post('/bulk-update', (req, res, next) => ctrl().bulkUpdate(req, res, next));
+
+// ─── Collection Routes ──────────────────────────────────────────────────────
+/**
+ * GET /candidates?search=alice&status=ACTIVE&stage=<id>&sort=name&order=asc&dateRange=30d
+ */
+candidateRouter.get('/', (req, res, next) => ctrl().getCandidates(req, res, next));
 
 /**
- * @openapi
- * /candidates/upload:
- *   post:
- *     tags: [Candidates]
- *     summary: Upload a candidate resume
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               resume:
- *                 type: string
- *                 format: binary
- *               candidateEmail:
- *                 type: string
- *     responses:
- *       201:
- *         description: Resume uploaded and processed
+ * POST /candidates — Create candidate directly
+ * body: { firstName, lastName, email, pipelineId, initialStageId, jobId?, resumeUrl? }
  */
-candidateRouter.post(
-  '/upload',
-  uploadResumeMiddleware.single('resume'),
-  (req, res, next) => new CandidateController().uploadResume(req, res, next),
-);
+candidateRouter.post('/', (req, res, next) => ctrl().createCandidate(req, res, next));
 
-/**
- * @openapi
- * /candidates/{id}:
- *   get:
- *     tags: [Candidates]
- *     summary: Get candidate details by ID
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Candidate details
- *       404:
- *         description: Candidate not found
- */
-candidateRouter.get('/:id', (req, res, next) =>
-  new CandidateController().getCandidateById(req, res, next),
-);
+// ─── Per-Candidate Routes ───────────────────────────────────────────────────
+candidateRouter.get('/:id', (req, res, next) => ctrl().getCandidateById(req, res, next));
+candidateRouter.put('/:id', (req, res, next) => ctrl().updateCandidate(req, res, next));
+candidateRouter.delete('/:id', (req, res, next) => ctrl().deleteCandidate(req, res, next));
 
-/**
- * @openapi
- * /candidates:
- *   get:
- *     tags: [Candidates]
- *     summary: List candidates with pagination and filters
- *     parameters:
- *       - name: status
- *         in: query
- *         schema: { type: string }
- *       - name: page
- *         in: query
- *         schema: { type: integer, default: 1 }
- *       - name: limit
- *         in: query
- *         schema: { type: integer, default: 10 }
- *     responses:
- *       200:
- *         description: Paginated list of candidates
- */
-candidateRouter.get('/', (req, res, next) =>
-  new CandidateController().getCandidates(req, res, next),
-);
+// Feedback
+candidateRouter.get('/:id/resume-feedback', (req, res, next) => ctrl().getResumeFeedback(req, res, next));
 
-/**
- * @openapi
- * /candidates/{id}/resume-feedback:
- *   get:
- *     tags: [Candidates]
- *     summary: Generate feedback for a candidate's resume
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: AI-generated resume feedback
- */
-candidateRouter.get('/:id/resume-feedback', (req, res, next) =>
-  new CandidateController().getResumeFeedback(req, res, next),
-);
-
-/**
- * Legacy Actions (Bridged to Clean Arch)
- */
-candidateRouter.post('/:id/transition', (req, res, next) =>
-  new CandidateController().moveStage(req, res, next),
-);
-
-candidateRouter.put('/:id/stage', (req, res, next) =>
-  new CandidateController().moveStage(req, res, next),
-);
-
-candidateRouter.post('/:id/reject', (req, res, next) =>
-  new CandidateController().reject(req, res, next),
-);
-
-candidateRouter.post('/:id/hire', (req, res, next) =>
-  new CandidateController().hire(req, res, next),
-);
+// Stage transitions
+candidateRouter.post('/:id/transition', (req, res, next) => ctrl().moveStage(req, res, next));
+candidateRouter.put('/:id/stage', (req, res, next) => ctrl().moveStage(req, res, next));
+candidateRouter.post('/:id/reject', (req, res, next) => ctrl().reject(req, res, next));
+candidateRouter.post('/:id/hire', (req, res, next) => ctrl().hire(req, res, next));
 
 export { candidateRouter };

@@ -20,20 +20,23 @@ analyticsRouter.get('/stats', async (req, res, next) => {
     try {
         const authReq = req as unknown as AuthenticatedRequest;
         const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+        const { prisma } = await import('../../infrastructure/database/prisma.client');
         const service = container.resolve<any>('AnalyticsService');
-        const metrics = await service.calculateHiringMetrics(organizationId);
-        
-        // Return exactly what the frontend DashboardOverview expects (DashboardStats interface)
+
+        const [metrics, pendingAlerts, totalCandidates] = await Promise.all([
+            service.calculateHiringMetrics(organizationId),
+            prisma.slaAlert.count({ where: { tenantId: organizationId, isResolved: false } }),
+            prisma.candidate.count({ where: { tenantId: organizationId, status: 'ACTIVE' } }),
+        ]);
+
         res.status(200).json({
             totalHired: metrics.totalHired || 0,
-            activeCandidates: metrics.activeCandidates || 0,
-            pendingAlerts: 0,
+            activeCandidates: totalCandidates,
+            pendingAlerts,
             offersAccepted: metrics.totalHired || 0,
-            avgTimeToHireDays: metrics.avgTimeToHire || 14
+            avgTimeToHireDays: metrics.avgTimeToHire || 0,
         });
-    } catch (e) {
-        next(e);
-    }
+    } catch (e) { next(e); }
 });
 
 analyticsRouter.get('/metrics', async (req, res, next) => {

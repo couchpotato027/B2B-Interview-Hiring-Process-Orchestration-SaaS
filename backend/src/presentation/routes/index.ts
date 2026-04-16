@@ -8,6 +8,7 @@ import { analyticsRouter } from './analyticsRoutes';
 import { identityRouter } from './identityRoutes';
 import { fileRouter } from './fileRoutes';
 import { searchRouter } from './searchRoutes';
+import { interviewRouter } from './interviewRoutes';
 import { authMiddleware } from '../../infrastructure/middleware/AuthMiddleware';
 
 const apiRouter = Router();
@@ -24,9 +25,10 @@ apiRouter.use('/jobs', jobRouter);
 apiRouter.use('/evaluations', evaluationRouter);
 apiRouter.use('/pipelines', pipelineRouter);
 apiRouter.use('/analytics', analyticsRouter);
-apiRouter.use('/reports', analyticsRouter);   // Alias for reportsApi
-apiRouter.use('/dashboard', analyticsRouter); // Alias for dashboardApi
+apiRouter.use('/reports', analyticsRouter);
+apiRouter.use('/dashboard', analyticsRouter);
 apiRouter.use('/files', fileRouter);
 apiRouter.use('/search', searchRouter);
+apiRouter.use('/interviews', interviewRouter);
 
 export { apiRouter };

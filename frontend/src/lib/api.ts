@@ -104,10 +104,26 @@ export const jobApi = {
 };
 
 // ─── Candidates ────────────────────────────────────────────────────
+export interface CandidateFilters {
+    search?: string;
+    status?: string;
+    stage?: string;
+    sort?: 'createdAt' | 'name' | 'email' | 'status';
+    order?: 'asc' | 'desc';
+    dateRange?: '7d' | '30d' | '90d';
+}
+
 export const candidateApi = {
-    list: (filters?: Record<string, string>) => {
-        const params = new URLSearchParams(filters || {}).toString();
-        return fetchWithAuth(`/candidates${params ? `?${params}` : ''}`);
+    list: (filters?: CandidateFilters) => {
+        const params = new URLSearchParams();
+        if (filters?.search) params.set('search', filters.search);
+        if (filters?.status) params.set('status', filters.status);
+        if (filters?.stage) params.set('stage', filters.stage);
+        if (filters?.sort) params.set('sort', filters.sort);
+        if (filters?.order) params.set('order', filters.order);
+        if (filters?.dateRange) params.set('dateRange', filters.dateRange);
+        const qs = params.toString();
+        return fetchWithAuth(`/candidates${qs ? `?${qs}` : ''}`);
     },
     get: (id: string) => fetchWithAuth(`/candidates/${id}`),
     create: (data: unknown) => fetchWithAuth('/candidates', { method: 'POST', body: JSON.stringify(data) }),
@@ -116,7 +132,8 @@ export const candidateApi = {
     moveStage: (id: string, newStageId: string) => fetchWithAuth(`/candidates/${id}/stage`, { method: 'PUT', body: JSON.stringify({ newStageId }) }),
     reject: (id: string) => fetchWithAuth(`/candidates/${id}/reject`, { method: 'POST' }),
     hire: (id: string) => fetchWithAuth(`/candidates/${id}/hire`, { method: 'POST' }),
-    bulkUpdate: (candidateIds: string[], action: string, payload: any) => fetchWithAuth('/candidates/bulk-update', { method: 'POST', body: JSON.stringify({ candidateIds, action, payload }) }),
+    bulkUpdate: (candidateIds: string[], action: string, payload: any) =>
+        fetchWithAuth('/candidates/bulk-update', { method: 'POST', body: JSON.stringify({ candidateIds, action, payload }) }),
 };
 
 // ─── Pipelines ─────────────────────────────────────────────────────
@@ -141,12 +158,23 @@ export const evaluationApi = {
 
 // ─── Interviews ────────────────────────────────────────────────────
 export const interviewApi = {
-    list: (filters?: Record<string, string>) => {
-        const params = new URLSearchParams(filters || {}).toString();
+    list: (filters?: { candidateId?: string; interviewerId?: string; status?: string }) => {
+        const params = new URLSearchParams(filters as any).toString();
         return fetchWithAuth(`/interviews${params ? `?${params}` : ''}`);
     },
-    schedule: (data: unknown) => fetchWithAuth('/interviews', { method: 'POST', body: JSON.stringify(data) }),
+    schedule: (data: {
+        candidateId: string;
+        interviewerId: string;
+        stageId?: string;
+        scheduledAt: string;
+        durationMinutes?: number;
+        type?: string;
+        videoLink?: string;
+        notes?: string;
+    }) => fetchWithAuth('/interviews', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: unknown) => fetchWithAuth(`/interviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    submitFeedback: (id: string, data: { rating: number; feedback: string; recommendation?: string }) =>
+        fetchWithAuth(`/interviews/${id}/feedback`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ─── Reports ───────────────────────────────────────────────────────
