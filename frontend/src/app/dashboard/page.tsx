@@ -277,7 +277,7 @@ export default function DashboardOverview() {
                                 data={funnelData} 
                                 layout="vertical" 
                                 margin={{ top: 0, right: 30, left: 10, bottom: 0 }}
-                                onClick={(data) => data && handleDrillDown('stage', (data.activePayload?.[0]?.payload as any)?.stageId)}
+                                onClick={(data: any) => data && handleDrillDown('stage', (data.activePayload?.[0]?.payload as any)?.stageId)}
                             >
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                                 <XAxis type="number" hide />
