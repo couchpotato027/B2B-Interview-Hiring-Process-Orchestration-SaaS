@@ -103,13 +103,10 @@ export class Job {
   }
 
   private static validateRequiredSkills(skills: string[]): string[] {
-    const normalizedSkills = Job.normalizeSkills(skills);
-
-    if (normalizedSkills.length === 0) {
-      throw new Error('At least one required skill must be provided.');
-    }
-
-    return normalizedSkills;
+    // Input validation is enforced by Zod schema at the route level.
+    // Returning an empty array here ensures existing DB records (created before
+    // this field was required) don't break entity hydration.
+    return Job.normalizeSkills(skills ?? []);
   }
 
   private static validateExperience(requiredExperience: number): number {
