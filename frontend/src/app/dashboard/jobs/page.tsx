@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Briefcase, Users, X } from 'lucide-react';
+import { Plus, Briefcase, Users, X, Settings2 } from 'lucide-react';
 import { jobApi, pipelineApi } from '@/lib/api';
+import { ScoringConfigModal } from '@/components/jobs/ScoringConfigModal';
 
 interface JobItem {
     id: string;
@@ -22,6 +23,7 @@ export default function JobsPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [form, setForm] = useState({ title: '', department: '', pipelineTemplateId: '' });
     const [formError, setFormError] = useState('');
+    const [configJob, setConfigJob] = useState<JobItem | null>(null);
 
     const load = async () => {
         try {
@@ -133,7 +135,13 @@ export default function JobsPage() {
                         </div>
 
                         {job.status === 'OPEN' && (
-                            <div className="mt-6 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="mt-6 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    onClick={() => setConfigJob(job)}
+                                    className="flex items-center gap-1.5 text-[10px] font-black text-slate-900 bg-slate-100 hover:bg-[#c8ff00] px-3 py-2 rounded-xl transition-colors uppercase"
+                                >
+                                    <Settings2 className="h-3.5 w-3.5" /> Configure Scoring
+                                </button>
                                 <button onClick={() => handleArchive(job.id)} className="text-xs font-medium text-red-500 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-full ring-1 ring-red-100">Archive role</button>
                             </div>
                         )}
@@ -175,6 +183,14 @@ export default function JobsPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {configJob && (
+                <ScoringConfigModal 
+                    job={configJob} 
+                    onClose={() => setConfigJob(null)} 
+                    onUpdate={load}
+                />
             )}
         </div>
     );

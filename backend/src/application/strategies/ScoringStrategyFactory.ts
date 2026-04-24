@@ -2,6 +2,7 @@ import type { IScoringStrategy } from '../../domain/strategies/IScoringStrategy'
 import { ExperienceMatchStrategy } from './ExperienceMatchStrategy';
 import { ProjectRelevanceStrategy } from './ProjectRelevanceStrategy';
 import { SkillMatchStrategy } from './SkillMatchStrategy';
+import { EducationStrategy } from './EducationStrategy';
 
 export interface ScoringStrategyConfig {
   includeSkillMatch?: boolean;
@@ -15,6 +16,7 @@ export class ScoringStrategyFactory {
       new SkillMatchStrategy(),
       new ExperienceMatchStrategy(),
       new ProjectRelevanceStrategy(),
+      new EducationStrategy(),
     ];
   }
 

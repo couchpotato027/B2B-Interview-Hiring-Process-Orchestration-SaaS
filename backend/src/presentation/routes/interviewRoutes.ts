@@ -1,126 +1,70 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { prisma } from '../../infrastructure/database/prisma.client';
-import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
-import { wsService } from '../integration/websocket';
+import { Router } from 'express';
+import { z } from 'zod';
+import { InterviewController } from '../controllers/InterviewController';
+import { validateRequestBody } from '../middleware/validationMiddleware';
+
+const scheduleInterviewSchema = z.object({
+  candidateId: z.string().uuid(),
+  stageId: z.string().uuid(),
+  title: z.string().min(1),
+  type: z.enum(['phone', 'video', 'onsite', 'technical']),
+  scheduledAt: z.string().datetime(),
+  duration: z.number().positive(),
+  notes: z.string().optional(),
+  panel: z.array(z.object({
+    userId: z.string().uuid(),
+    role: z.enum(['lead', 'shadow', 'observer'])
+  })).min(1)
+});
+
+const feedbackSchema = z.object({
+    feedback: z.object({
+        rating: z.number().min(1).max(5),
+        recommendation: z.enum(['strong_hire', 'hire', 'maybe', 'no_hire', 'strong_no_hire']),
+        notes: z.string().min(1),
+        strengths: z.array(z.string()).default([]),
+        weaknesses: z.array(z.string()).default([]),
+        rubricResponses: z.record(z.any()).optional()
+    })
+});
 
 const interviewRouter = Router();
-
-const getTenantId = (req: Request) =>
-  (req as unknown as AuthenticatedRequest).user?.organizationId || 'default-tenant-id';
+const controller = new InterviewController();
 
 /**
- * GET /interviews?candidateId=&interviewerId=
+ * @openapi
+ * /interviews/schedule:
+ *   post:
+ *     tags: [Interviews]
+ *     summary: Schedule a new interview (panel support, calendar integration)
  */
-interviewRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const tenantId = getTenantId(req);
-    const { candidateId, interviewerId } = req.query;
-
-    const where: any = { tenantId };
-    if (candidateId) where.candidateId = candidateId as string;
-    if (interviewerId) where.interviewerId = interviewerId as string;
-
-    const interviews = await prisma.interview.findMany({
-      where,
-      orderBy: { scheduledAt: 'desc' },
-      include: {
-        candidate: { select: { id: true, firstName: true, lastName: true, email: true } },
-        interviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
-        stage: { select: { name: true } },
-      },
-    });
-
-    return res.status(200).json(interviews);
-  } catch (err) { return next(err); }
-});
+interviewRouter.post('/schedule', validateRequestBody(scheduleInterviewSchema), controller.schedule);
 
 /**
- * POST /interviews — Schedule a new interview
- * body: { candidateId, interviewerId, stageId, scheduledAt, notes }
+ * @openapi
+ * /interviews/{id}/feedback:
+ *   post:
+ *     tags: [Interviews]
+ *     summary: Submit detailed interview feedback
  */
-interviewRouter.post('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const tenantId = getTenantId(req);
-    const { candidateId, interviewerId, stageId, scheduledAt, notes } = req.body;
-
-    if (!candidateId || !interviewerId || !scheduledAt || !stageId) {
-      return res.status(400).json({ message: 'candidateId, interviewerId, stageId, scheduledAt are required' });
-    }
-
-    const interview = await prisma.interview.create({
-      data: {
-        tenantId,
-        candidateId,
-        interviewerId,
-        stageId,
-        scheduledAt: new Date(scheduledAt),
-        notes: notes || null,
-        feedbackStatus: 'PENDING',
-      },
-      include: {
-        candidate: { select: { id: true, firstName: true, lastName: true, email: true } },
-        interviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
-        stage: { select: { name: true } },
-      },
-    });
-
-      const interviewerName = interview.interviewer?.firstName || 'Interviewer';
-      wsService.emit(tenantId, 'interview:scheduled', { candidateId, interviewerId, scheduledAt: interview.scheduledAt });
-      
-      await prisma.notification.create({
-        data: {
-          tenantId,
-          userId: interviewerId,
-          type: 'INTERVIEW_SCHEDULED',
-          title: 'Interview Scheduled',
-          message: `You have an interview scheduled with candidate ${interview.candidate?.firstName || ''} on ${new Date(scheduledAt).toLocaleDateString()}`
-        }
-      });
-
-      return res.status(201).json(interview);
-  } catch (err) { return next(err); }
-});
+interviewRouter.post('/:id/feedback', validateRequestBody(feedbackSchema), controller.submitFeedback);
 
 /**
- * PUT /interviews/:id — Update interview (reschedule / add notes)
+ * @openapi
+ * /interviews/candidate/{candidateId}:
+ *   get:
+ *     tags: [Interviews]
+ *     summary: Get all interviews for a specific candidate
  */
-interviewRouter.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    const { scheduledAt, notes, feedbackStatus } = req.body;
-
-    const updated = await prisma.interview.update({
-      where: { id },
-      data: {
-        ...(scheduledAt && { scheduledAt: new Date(scheduledAt) }),
-        ...(notes !== undefined && { notes }),
-        ...(feedbackStatus && { feedbackStatus }),
-      },
-    });
-
-    return res.status(200).json(updated);
-  } catch (err) { return next(err); }
-});
+interviewRouter.get('/candidate/:candidateId', controller.getCandidateInterviews);
 
 /**
- * POST /interviews/:id/feedback — Mark interview as completed with feedback
- * body: { notes, feedbackStatus }
+ * @openapi
+ * /interviews/availability:
+ *   get:
+ *     tags: [Interviews]
+ *     summary: Check interviewer availability
  */
-interviewRouter.post('/:id/feedback', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    const { notes } = req.body;
-
-    const updated = await prisma.interview.update({
-      where: { id },
-      data: {
-        feedbackStatus: 'SUBMITTED',
-        notes: notes || undefined,
-      },
-    });
-
-    return res.status(200).json(updated);
-  } catch (err) { return next(err); }
-});
+interviewRouter.get('/availability', controller.getAvailability);
 
 export { interviewRouter };

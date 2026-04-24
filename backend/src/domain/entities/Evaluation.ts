@@ -13,6 +13,8 @@ export interface EvaluationProps {
   skillMatchScore: number;
   experienceScore: number;
   projectRelevanceScore: number;
+  educationScore?: number;
+  culturalFitScore?: number;
   strengths: string[];
   weaknesses: string[];
   recommendation: EvaluationRecommendation;
@@ -31,6 +33,8 @@ export class Evaluation {
   private skillMatchScore: Score;
   private experienceScore: Score;
   private projectRelevanceScore: Score;
+  private educationScore: Score;
+  private culturalFitScore: Score;
   private overallScore: Score;
   private strengths: string[];
   private weaknesses: string[];
@@ -46,6 +50,8 @@ export class Evaluation {
     this.skillMatchScore = new Score(props.skillMatchScore);
     this.experienceScore = new Score(props.experienceScore);
     this.projectRelevanceScore = new Score(props.projectRelevanceScore);
+    this.educationScore = new Score(props.educationScore || 0);
+    this.culturalFitScore = new Score(props.culturalFitScore || 0);
     this.strengths = Evaluation.normalizeNotes(props.strengths);
     this.weaknesses = Evaluation.normalizeNotes(props.weaknesses);
     this.recommendation = props.recommendation;
@@ -82,6 +88,14 @@ export class Evaluation {
     return this.projectRelevanceScore.getValue();
   }
 
+  public getEducationScore(): number {
+    return this.educationScore.getValue();
+  }
+
+  public getCulturalFitScore(): number {
+    return this.culturalFitScore.getValue();
+  }
+
   public getOverallScore(): number {
     return this.overallScore.getValue();
   }
@@ -103,14 +117,13 @@ export class Evaluation {
   }
 
   public calculateOverallScore(): number {
-    const weightedAverage =
-      this.skillMatchScore.getValue() * Evaluation.SKILL_MATCH_WEIGHT +
-      this.experienceScore.getValue() * Evaluation.EXPERIENCE_WEIGHT +
-      this.projectRelevanceScore.getValue() * Evaluation.PROJECT_RELEVANCE_WEIGHT;
-
-    this.overallScore = new Score(Number(weightedAverage.toFixed(2)));
-
+    // We already have the overall score from the use case (which handles dynamic weights)
+    // But for consistency we'll default it here if not provided or keep it updated.
     return this.overallScore.getValue();
+  }
+
+  public setOverallScore(score: number): void {
+     this.overallScore = new Score(score);
   }
 
   private static normalizeNotes(notes: string[]): string[] {

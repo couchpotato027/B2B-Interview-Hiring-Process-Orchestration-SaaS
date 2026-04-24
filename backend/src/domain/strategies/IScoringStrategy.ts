@@ -4,5 +4,5 @@ import type { Job } from '../entities/Job';
 export interface IScoringStrategy {
   calculate(candidate: Candidate, job: Job): Promise<number>;
   getName(): string;
-  getWeight(): number;
+  getWeight(job?: Job): number;
 }

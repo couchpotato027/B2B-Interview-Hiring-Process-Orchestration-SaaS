@@ -6,6 +6,16 @@ export interface CandidateProject {
   title: string;
   description: string;
   technologies: string[];
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export interface CandidateEducation {
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export interface CandidateProps {
@@ -18,7 +28,7 @@ export interface CandidateProps {
   resumeId: string;
   skills: string[];
   yearsOfExperience: number;
-  education: string;
+  education: CandidateEducation[];
   projects: CandidateProject[];
   status: CandidateStatus;
   createdAt?: Date;
@@ -34,7 +44,7 @@ export class Candidate {
   private resumeId: string;
   private skills: string[];
   private yearsOfExperience: number;
-  private education: string;
+  private education: CandidateEducation[];
   private projects: CandidateProject[];
   private status: CandidateStatus;
   private readonly createdAt: Date;
@@ -52,7 +62,7 @@ export class Candidate {
     this.resumeId = Candidate.requireNonEmpty(props.resumeId, 'Resume id is required.');
     this.skills = Candidate.normalizeSkills(props.skills);
     this.yearsOfExperience = props.yearsOfExperience;
-    this.education = Candidate.requireNonEmpty(props.education, 'Education is required.');
+    this.education = Candidate.validateEducation(props.education);
     this.projects = Candidate.validateProjects(props.projects);
     this.status = props.status;
     this.createdAt = props.createdAt || new Date();
@@ -94,8 +104,8 @@ export class Candidate {
     return this.yearsOfExperience;
   }
 
-  public getEducation(): string {
-    return this.education;
+  public getEducation(): CandidateEducation[] {
+    return this.education.map(edu => ({ ...edu }));
   }
 
   public getProjects(): CandidateProject[] {
@@ -146,6 +156,21 @@ export class Candidate {
       title: Candidate.requireNonEmpty(project.title, 'Project title is required.'),
       description: Candidate.requireNonEmpty(project.description, 'Project description is required.'),
       technologies: Candidate.normalizeSkills(project.technologies),
+      startDate: project.startDate,
+      endDate: project.endDate,
+    }));
+  }
+
+  private static validateEducation(education: CandidateEducation[]): CandidateEducation[] {
+    if (!Array.isArray(education) || education.length === 0) {
+      throw new Error('Education records are required.');
+    }
+    return education.map(edu => ({
+      institution: Candidate.requireNonEmpty(edu.institution, 'Institution is required.'),
+      degree: Candidate.requireNonEmpty(edu.degree, 'Degree is required.'),
+      fieldOfStudy: Candidate.requireNonEmpty(edu.fieldOfStudy, 'Field of study is required.'),
+      startDate: edu.startDate,
+      endDate: edu.endDate,
     }));
   }
 

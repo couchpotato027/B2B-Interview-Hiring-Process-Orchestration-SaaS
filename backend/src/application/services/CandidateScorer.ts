@@ -14,7 +14,7 @@ export class CandidateScorer {
         return {
           name: strategy.getName(),
           score: Number(score.toFixed(2)),
-          weight: strategy.getWeight(),
+          weight: strategy.getWeight(job),
         };
       }),
     );

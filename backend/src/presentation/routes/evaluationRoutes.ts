@@ -91,4 +91,23 @@ evaluationRouter.post('/batch', validateRequestBody(batchEvaluateSchema), (req, 
   new EvaluationController().createBatchEvaluation(req, res, next),
 );
 
+/**
+ * @openapi
+ * /evaluations/{id}/recalculate:
+ *   post:
+ *     tags: [Evaluations]
+ *     summary: Recalculate evaluation scores using latest algorithms and weights
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Evaluation recalculated
+ */
+evaluationRouter.post('/:id/recalculate', (req, res, next) =>
+  new EvaluationController().recalculateEvaluation(req, res, next),
+);
+
 export { evaluationRouter };

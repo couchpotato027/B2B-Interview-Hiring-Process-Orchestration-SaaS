@@ -22,7 +22,10 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     }
 
     const headers = new Headers(options.headers || {});
-    headers.set('Content-Type', 'application/json');
+    // Don't set Content-Type if we're sending FormData (browser set it with boundary)
+    if (!(options.body instanceof FormData)) {
+        headers.set('Content-Type', 'application/json');
+    }
 
     if (token) {
         headers.set('Authorization', `Bearer ${token}`);
@@ -47,6 +50,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 
     return data;
 }
+
 
 // ─── Auth ────────────────────────────────────────────────────────────
 export const authApi = {
@@ -85,6 +89,7 @@ export const authApi = {
     getMe: () => fetchWithAuth('/auth/me'),
     listUsers: () => fetchWithAuth('/auth/users'),
     createUser: (data: unknown) => fetchWithAuth('/auth/users', { method: 'POST', body: JSON.stringify(data) }),
+    updatePreferences: (data: { language: string }) => fetchWithAuth('/auth/preferences', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────
@@ -103,6 +108,7 @@ export const jobApi = {
     create: (data: unknown) => fetchWithAuth('/jobs', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: unknown) => fetchWithAuth(`/jobs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     archive: (id: string) => fetchWithAuth(`/jobs/${id}`, { method: 'DELETE' }),
+    configureScoring: (id: string, weights: any) => fetchWithAuth(`/jobs/${id}/configure-scoring`, { method: 'POST', body: JSON.stringify({ weights }) }),
 };
 
 // ─── Candidates ────────────────────────────────────────────────────
@@ -168,17 +174,25 @@ export const interviewApi = {
     },
     schedule: (data: {
         candidateId: string;
-        interviewerId: string;
-        stageId?: string;
+        stageId: string;
+        title: string;
+        type: 'phone' | 'video' | 'onsite' | 'technical';
         scheduledAt: string;
-        durationMinutes?: number;
-        type?: string;
-        videoLink?: string;
+        duration: number;
         notes?: string;
-    }) => fetchWithAuth('/interviews', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: unknown) => fetchWithAuth(`/interviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    submitFeedback: (id: string, data: { rating: number; feedback: string; recommendation?: string }) =>
-        fetchWithAuth(`/interviews/${id}/feedback`, { method: 'POST', body: JSON.stringify(data) }),
+        panel: Array<{ userId: string; role: 'lead' | 'shadow' | 'observer' }>;
+    }) => fetchWithAuth('/interviews/schedule', { method: 'POST', body: JSON.stringify(data) }),
+    submitFeedback: (id: string, feedback: {
+        rating: number;
+        recommendation: string;
+        notes: string;
+        strengths: string[];
+        weaknesses: string[];
+        rubricResponses?: Record<string, any>;
+    }) => fetchWithAuth(`/interviews/${id}/feedback`, { method: 'POST', body: JSON.stringify({ feedback }) }),
+    forCandidate: (candidateId: string) => fetchWithAuth(`/interviews/candidate/${candidateId}`),
+    checkAvailability: (userIds: string[], start: string, end: string) => 
+        fetchWithAuth(`/interviews/availability?userIds=${userIds.join(',')}&start=${start}&end=${end}`),
 };
 
 // ─── Reports ───────────────────────────────────────────────────────
@@ -198,8 +212,12 @@ export const auditApi = {
 };
 
 export const complianceApi = {
-    exportData: (candidateId: string) => fetchWithAuth('/compliance/export-data', { method: 'POST', body: JSON.stringify({ candidateId }) }),
-    deleteData: (candidateId: string) => fetchWithAuth('/compliance/delete-data', { method: 'POST', body: JSON.stringify({ candidateId }) }),
+    getAuditLogs: (params?: any) => {
+        const query = new URLSearchParams(params).toString();
+        return fetchWithAuth(`/compliance/audit-logs${query ? `?${query}` : ''}`);
+    },
+    deleteCandidateData: (candidateId: string) => fetchWithAuth('/compliance/delete-data', { method: 'POST', body: JSON.stringify({ candidateId }) }),
+    exportCandidateData: (candidateId: string) => fetchWithAuth('/compliance/export-data', { method: 'POST', body: JSON.stringify({ candidateId }) }),
 };
 
 export const emailApi = {
@@ -213,4 +231,21 @@ export const notificationApi = {
     getNotifications: () => fetchWithAuth('/notifications'),
     markAsRead: (id: string) => fetchWithAuth(`/notifications/${id}/read`, { method: 'PUT' }),
     markAllAsRead: () => fetchWithAuth('/notifications/read-all', { method: 'PUT' }),
+};
+
+export const exchangeApi = {
+    exportCandidates: (format: 'csv' | 'json', filters?: any) => 
+        fetchWithAuth(`/exchange/candidates/export?format=${format}`, { 
+            method: 'POST', 
+            body: JSON.stringify({ filters }) 
+        }),
+    importCandidates: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return fetchWithAuth('/exchange/candidates/import', { 
+            method: 'POST', 
+            body: formData 
+        });
+    },
+    getTemplate: () => fetchWithAuth('/exchange/candidates/template'),
 };

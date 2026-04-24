@@ -156,7 +156,7 @@ export class ProcessResumeUseCase {
       resumeId: randomUUID(),
       skills,
       yearsOfExperience: this.parseYearsOfExperience(parsedResumeData.experience),
-      education: parsedResumeData.education?.trim() || 'Not specified',
+      education: [{ institution: 'Extracted', degree: parsedResumeData.education?.trim() || 'Not specified', fieldOfStudy: 'N/A' }],
       projects: this.mapProjects(parsedResumeData.projects),
       status: 'active',
     });
@@ -182,7 +182,7 @@ export class ProcessResumeUseCase {
         existingCandidate.getYearsOfExperience(),
         this.parseYearsOfExperience(parsedResumeData.experience),
       ),
-      education: parsedResumeData.education?.trim() || existingCandidate.getEducation(),
+      education: existingCandidate.getEducation(), 
       projects: this.mergeProjects(existingCandidate.getProjects(), parsedResumeData.projects),
       status: existingCandidate.getStatus(),
     });

@@ -1,40 +1,33 @@
 {
-    "common": {
-        "dashboard": "Dashboard",
-        "jobs": "Jobs",
-        "candidates": "Candidates",
-        "pipelines": "Pipelines",
-        "reports": "Reports",
-        "settings": "Settings",
-        "auditLog": "Audit Log",
-        "logout": "Log out",
-        "search": "Search...",
-        "filters": "Filters",
-        "status": "Status",
-        "stage": "Stage",
-        "actions": "Actions",
-        "save": "Save",
-        "cancel": "Cancel",
-        "delete": "Delete",
-        "export": "Export Data",
-        "anonymize": "Anonymize Data"
+  "common": {
+    "dashboard": "Dashboard",
+    "jobs": "Jobs",
+    "candidates": "Candidates",
+    "pipelines": "Pipelines",
+    "reports": "Reports",
+    "settings": "Settings",
+    "auditLog": "Audit Log",
+    "logout": "Logout",
+    "search": "Search candidates...",
+    "actions": {
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "view": "View",
+      "hire": "Hire",
+      "reject": "Reject"
     },
-    "candidates": {
-        "title": "Candidate Directory",
-        "add": "Add Candidate",
-        "activeFilters": "Active Filters",
-        "clearAll": "Clear All",
-        "noResults": "No candidates found matching your filters.",
-        "searchCount": "{{count}} results for '{{search}}'"
-    },
-    "audit": {
-        "title": "Audit Logs",
-        "description": "Detailed compliance trails for SOC 2 and GDPR auditing.",
-        "user": "User",
-        "action": "Action",
-        "resource": "Resource",
-        "context": "Context",
-        "timestamp": "Timestamp",
-        "clearFilters": "Clear Filters"
+    "candidate": {
+      "status": {
+        "active": "Active",
+        "hired": "Hired",
+        "rejected": "Rejected",
+        "on_hold": "On Hold"
+      },
+      "details": "Candidate Details",
+      "history": "Interview History"
     }
+  }
 }

@@ -68,12 +68,16 @@ export class EvaluateCandidateUseCase {
         skillMatchScore: scoreMap.get('Skill Match') ?? 0,
         experienceScore: scoreMap.get('Experience Match') ?? 0,
         projectRelevanceScore: scoreMap.get('Project Relevance') ?? 0,
+        educationScore: scoreMap.get('Education') ?? 0,
+        culturalFitScore: scoreMap.get('Cultural Fit') ?? 0,
         strengths: insights.strengths,
         weaknesses: insights.weaknesses,
         recommendation: this.mapRecommendation(insights.recommendation),
         organizationId: input.organizationId,
         evaluatedAt: new Date(),
       });
+
+      evaluation.setOverallScore(scores.overallScore);
 
       const savedEvaluation = await this.dependencies.evaluationRepository.save(evaluation);
 

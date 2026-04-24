@@ -49,6 +49,7 @@ model User {
   passwordHash String
   firstName    String   @default("")
   lastName     String   @default("")
+  language     String   @default("en")
   createdAt    DateTime @default(now())
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -71,6 +72,10 @@ model Job {
   department         String   @default("")
   hiringManagerId    String?
   pipelineTemplateId String?
+  requiredSkills     String[] @default([])
+  preferredSkills    String[] @default([])
+  requiredExperience Float    @default(0)
+  scoringWeights     Json?    @default("{}")
   status             String   @default("OPEN") // OPEN, CLOSED, ARCHIVED
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -126,7 +131,12 @@ model Candidate {
   firstName      String
   lastName       String
   email          String
+  phone          String?
   resumeUrl      String?
+  skills         String[] @default([])
+  yearsOfExperience Float    @default(0)
+  education      Json?    @default("[]")
+  projects       Json?    @default("[]")
   status         String   @default("ACTIVE") // ACTIVE, REJECTED, HIRED, ON_HOLD
   stageEnteredAt DateTime @default(now())
   stageHistory   Json?     @default("[]")
@@ -196,19 +206,37 @@ model Interview {
   tenantId       String
   candidateId    String
   stageId        String
-  interviewerId  String
+  title          String   @default("Technical Interview")
+  type           String   @default("VIDEO") // PHONE, VIDEO, ONSITE, TECHNICAL
+  status         String   @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED, RESCHEDULED
   scheduledAt    DateTime
-  feedbackStatus String   @default("PENDING") // PENDING, SUBMITTED
+  duration       Int      @default(60) // in minutes
+  videoLink      String?
   notes          String?
+  feedback       Json?     // Stores: rating, recommendation, feedback text, rubric responses
+  feedbackStatus String   @default("PENDING") // PENDING, SUBMITTED
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   candidate   Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  stage       PipelineStage @relation(fields: [stageId], references: [id], onDelete: SetNull)
-  interviewer User          @relation(fields: [interviewerId], references: [id], onDelete: Restrict)
+  stage       PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  panel       InterviewPanelMember[]
 
   @@index([tenantId, candidateId])
-  @@index([tenantId, interviewerId])
+}
+
+model InterviewPanelMember {
+  id           String    @id @default(uuid())
+  interviewId  String
+  userId       String
+  role         String    @default("LEAD") // LEAD, SHADOW, OBSERVER
+  
+  interview    Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId])
+  @@index([userId])
 }
 
 model AuditLog {

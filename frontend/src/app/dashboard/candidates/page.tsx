@@ -8,6 +8,9 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import BulkActionsToolbar from '@/components/candidates/BulkActionsToolbar';
 import { CandidateDetailDrawer } from '@/components/candidates/CandidateDetailDrawer';
 import { ResumeUploadZone } from '@/components/candidates/ResumeUploadZone';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { ExportDialog } from '@/components/shared/ExportDialog';
+import { ImportWizard } from '@/components/shared/ImportWizard';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface CandidateItem {
@@ -61,6 +64,8 @@ export default function CandidatesPage() {
     const [searching, setSearching] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+    const [showExport, setShowExport] = useState(false);
+    const [showImport, setShowImport] = useState(false);
     const [actionMenu, setActionMenu] = useState<string | null>(null);
     const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
     const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
@@ -171,6 +176,18 @@ export default function CandidatesPage() {
                         {t('common.filters')} {activeChips.length > 0 && <span className="h-5 w-5 rounded-full bg-[#c8ff00] text-[#0a0f1a] text-xs font-bold flex items-center justify-center">{activeChips.length}</span>}
                     </button>
                     <button
+                        onClick={() => setShowImport(true)}
+                        className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors"
+                    >
+                        Import
+                    </button>
+                    <button
+                        onClick={() => setShowExport(true)}
+                        className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors"
+                    >
+                        Export
+                    </button>
+                    <button
                         onClick={() => setShowAddModal(true)}
                         className="inline-flex items-center gap-x-2 rounded-full bg-[#0a0f1a] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors"
                     >
@@ -244,7 +261,46 @@ export default function CandidatesPage() {
             )}
 
             <div className="flow-root">
-                <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                {/* Mobile Card View */}
+                <div className="lg:hidden space-y-4">
+                    {candidates.length > 0 ? candidates.map((person) => (
+                        <div 
+                            key={person.id}
+                            onClick={() => setSelectedCandidateId(person.id)}
+                            className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95 transition-transform"
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-full bg-slate-900 flex items-center justify-center font-bold text-white text-sm">{person.firstName[0]}{person.lastName[0]}</div>
+                                    <div>
+                                        <h4 className="font-black text-slate-900 dark:text-white leading-tight">{person.firstName} {person.lastName}</h4>
+                                        <p className="text-xs text-slate-400 font-medium">{person.email}</p>
+                                    </div>
+                                </div>
+                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ring-1 ring-inset ${STATUS_COLORS[person.status]}`}>
+                                    {person.status}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800/50">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pipeline</span>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-white">{person.pipeline?.name}</span>
+                                </div>
+                                <div className="flex flex-col gap-1 text-right">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stage</span>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-white">{person.currentStage?.name}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="py-20">
+                             <EmptyState type={debouncedSearch ? 'search' : 'candidates'} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden lg:block -mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                     <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                         <div className={`overflow-hidden shadow-sm ring-1 ring-slate-100 sm:rounded-2xl bg-white border border-slate-100 transition-opacity ${searching ? 'opacity-60' : 'opacity-100'}`}>
                             <table className="min-w-full divide-y divide-slate-100">
@@ -274,9 +330,7 @@ export default function CandidatesPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 bg-white">
-                                    {candidates.length === 0 ? (
-                                        <tr><td colSpan={7} className="py-16 text-center text-slate-500">{t('candidates.noResults')}</td></tr>
-                                    ) : candidates.map((person) => (
+                                    {candidates.length > 0 ? candidates.map((person) => (
                                         <tr key={person.id} className={`transition-colors group ${isSelected(person.id) ? 'bg-[#c8ff00]/5 hover:bg-[#c8ff00]/10' : 'hover:bg-slate-50/50'}`}>
                                             <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
                                                 <input type="checkbox" className="h-4 w-4 rounded border-slate-300 cursor-pointer accent-[#c8ff00]" checked={isSelected(person.id)} onChange={() => toggleSelect(person.id)} />
@@ -300,7 +354,16 @@ export default function CandidatesPage() {
                                                 <button onClick={() => setSelectedCandidateId(person.id)} className="text-slate-400 hover:text-slate-900"><MoreVertical className="h-5 w-5" /></button>
                                             </td>
                                         </tr>
-                                    ))}
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={7} className="py-12">
+                                                <EmptyState 
+                                                    type={debouncedSearch ? 'search' : 'candidates'} 
+                                                    onPrimaryAction={debouncedSearch ? clearAllFilters : () => setShowAddModal(true)}
+                                                />
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -309,6 +372,18 @@ export default function CandidatesPage() {
             </div>
 
             <CandidateDetailDrawer candidateId={selectedCandidateId} onClose={() => setSelectedCandidateId(null)} onUpdate={load} />
+
+            <ExportDialog 
+                isOpen={showExport} 
+                onClose={() => setShowExport(false)} 
+                filters={activeFilters} 
+            />
+
+            <ImportWizard 
+                isOpen={showImport} 
+                onClose={() => setShowImport(false)} 
+                onComplete={load} 
+            />
 
             {showAddModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">

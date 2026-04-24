@@ -7,6 +7,8 @@ export interface EvaluationDTO {
   skillMatchScore: number;
   experienceScore: number;
   projectRelevanceScore: number;
+  educationScore: number;
+  culturalFitScore: number;
   overallScore: number;
   strengths: string[];
   weaknesses: string[];
@@ -23,6 +25,8 @@ export class EvaluationTransformer {
       skillMatchScore: evaluation.getSkillMatchScore(),
       experienceScore: evaluation.getExperienceScore(),
       projectRelevanceScore: evaluation.getProjectRelevanceScore(),
+      educationScore: evaluation.getEducationScore(),
+      culturalFitScore: evaluation.getCulturalFitScore(),
       overallScore: evaluation.getOverallScore(),
       strengths: evaluation.getStrengths(),
       weaknesses: evaluation.getWeaknesses(),

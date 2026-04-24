@@ -32,7 +32,7 @@ export class ExperienceMatchStrategy implements IScoringStrategy {
     return 'Experience Match';
   }
 
-  public getWeight(): number {
-    return ExperienceMatchStrategy.WEIGHT;
+  public getWeight(job?: Job): number {
+    return job?.getScoringWeights()?.experience ?? ExperienceMatchStrategy.WEIGHT;
   }
 }

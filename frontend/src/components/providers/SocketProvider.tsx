@@ -1,8 +1,12 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import * as socketIo from 'socket.io-client';
 import { toast } from 'react-hot-toast';
+
+type Socket = any; // Fallback type if module resolution fails
+const io = (socketIo as any).io || socketIo;
+
 
 interface SocketContextData {
   socket: Socket | null;

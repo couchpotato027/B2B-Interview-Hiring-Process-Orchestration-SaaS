@@ -11,7 +11,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
   try {
     const user = await useCase.execute(req.body);
-    res.status(201).json({
+    return res.status(201).json({
       id: user.getId(),
       email: user.getEmail(),
       name: user.getName(),
@@ -19,7 +19,7 @@ router.post('/register', async (req: Request, res: Response) => {
       organizationId: user.getOrganizationId(),
     });
   } catch (error: any) {
-    res.status(400).json({
+    return res.status(400).json({
       message: error.message
     });
   }
@@ -34,10 +34,10 @@ router.post('/login', async (req: Request, res: Response) => {
     console.log(`[DEBUG-CLEAN] Login attempt for: ${email}`);
     const result = await useCase.execute(req.body);
     console.log(`[DEBUG-CLEAN] Login SUCCESS for: ${email}`);
-    res.status(200).json(result);
+    return res.status(200).json(result);
   } catch (error: any) {
     console.error(`[DEBUG-CLEAN] Login FAILED for: ${email} - Error: ${error.message}`);
-    res.status(401).json({
+    return res.status(401).json({
       message: error.message
     });
   }
@@ -76,6 +76,31 @@ router.get('/me', (req: Request, res: Response) => {
   }
 
   return res.status(401).json({ message: 'Not authenticated' });
+});
+
+router.patch('/preferences', async (req: Request, res: Response) => {
+  const authReq = req as any;
+  const userId = authReq.user?.userId || authReq.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  const { language } = req.body;
+  if (!language) {
+    return res.status(400).json({ message: 'Language is required' });
+  }
+
+  try {
+    const { prisma } = require('../../infrastructure/database/prisma.client');
+    await prisma.user.update({
+      where: { id: userId },
+      data: { language }
+    });
+    return res.status(200).json({ success: true, language });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
 });
 
 export { router as identityRouter };

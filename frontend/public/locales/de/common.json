@@ -1,0 +1,33 @@
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "jobs": "Jobs",
+    "candidates": "Kandidaten",
+    "pipelines": "Pipelines",
+    "reports": "Berichte",
+    "settings": "Einstellungen",
+    "auditLog": "Audit-Protokoll",
+    "logout": "Abmelden",
+    "search": "Kandidaten suchen...",
+    "actions": {
+      "create": "Erstellen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "view": "Ansehen",
+      "hire": "Einstellen",
+      "reject": "Ablehnen"
+    },
+    "candidate": {
+      "status": {
+        "active": "Aktiv",
+        "hired": "Eingestellt",
+        "rejected": "Abgelehnt",
+        "on_hold": "Warteschleife"
+      },
+      "details": "Kandidatendetails",
+      "history": "Interviewverlauf"
+    }
+  }
+}

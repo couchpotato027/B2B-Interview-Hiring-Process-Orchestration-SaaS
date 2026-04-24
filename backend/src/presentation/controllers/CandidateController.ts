@@ -138,6 +138,15 @@ export class CandidateController extends BaseController {
 
       // Build where clause
       const where: any = { tenantId };
+
+      // Row-Level Security: Interviewers only see candidates they are assigned to
+      if (authReq.user?.role === 'INTERVIEWER') {
+        where.interviews = {
+          some: {
+            panel: { some: { userId: authReq.user.userId } }
+          }
+        };
+      }
       if (status) where.status = status;
       if (stageId) where.currentStageId = stageId;
       if (createdAtFilter) where.createdAt = createdAtFilter;

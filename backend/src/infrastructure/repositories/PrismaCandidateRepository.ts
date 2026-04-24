@@ -34,6 +34,10 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       tenantId: candidate.getOrganizationId(),
       pipelineId: candidate.getPipelineId(),
       status: candidate.getStatus().toUpperCase(),
+      skills: candidate.getSkills(),
+      yearsOfExperience: candidate.getYearsOfExperience(),
+      education: candidate.getEducation(),
+      projects: candidate.getProjects(),
     };
 
     const saved = await this.prisma.candidate.upsert({
@@ -51,6 +55,10 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       lastName: candidate.getName().split(' ').slice(1).join(' ') || '',
       email: candidate.getEmail(),
       status: candidate.getStatus().toUpperCase(),
+      skills: candidate.getSkills(),
+      yearsOfExperience: candidate.getYearsOfExperience(),
+      education: candidate.getEducation(),
+      projects: candidate.getProjects(),
     };
 
     const updated = await this.prisma.candidate.update({
@@ -78,10 +86,18 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     const { page = 1, limit = 10, status } = filters;
     const skip = (page - 1) * limit;
 
-    const where = {
+    const where: any = {
       tenantId: organizationId,
       ...(status && { status: status.toUpperCase() }),
     };
+
+    if (filters.assignedToUserId) {
+        where.interviews = {
+            some: {
+                panel: { some: { userId: filters.assignedToUserId } }
+            }
+        };
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.candidate.findMany({
@@ -115,10 +131,10 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       organizationId: model.tenantId,
       pipelineId: model.pipelineId,
       resumeId: model.resumeUrl || 'NONE',
-      skills: [],
-      yearsOfExperience: 0,
-      education: 'N/A',
-      projects: [],
+      skills: model.skills || [],
+      yearsOfExperience: model.yearsOfExperience || 0,
+      education: (model.education as any) || [],
+      projects: (model.projects as any) || [],
       status: model.status.toLowerCase() as CandidateStatus,
       createdAt: model.createdAt,
     });

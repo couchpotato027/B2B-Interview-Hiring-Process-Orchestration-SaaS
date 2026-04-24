@@ -13,6 +13,9 @@ import { complianceRouter } from './complianceRoutes';
 import auditRouter from '../../modules/audit/audit.routes';
 import { emailRouter } from './emailRoutes';
 import { notificationRouter } from './notificationRoutes';
+import { exchangeRouter } from './exchangeRoutes';
+import { aiRouter } from './aiRoutes';
+import { publicApiRouter, webhookRouter } from './integrationRoutes';
 import { authMiddleware } from '../../infrastructure/middleware/AuthMiddleware';
 import { auditMiddleware } from '../../infrastructure/middleware/AuditMiddleware';
 
@@ -40,5 +43,9 @@ apiRouter.use('/audit', auditRouter);
 apiRouter.use('/compliance', complianceRouter);
 apiRouter.use('/emails', emailRouter);
 apiRouter.use('/notifications', notificationRouter);
+apiRouter.use('/exchange', exchangeRouter);
+apiRouter.use('/ai', aiRouter);
+apiRouter.use('/public', publicApiRouter);
+apiRouter.use('/webhooks', webhookRouter);
 
 export { apiRouter };

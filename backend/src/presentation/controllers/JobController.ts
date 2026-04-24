@@ -129,4 +129,23 @@ export class JobController extends BaseController {
       return next(error);
     }
   };
+
+  public configureScoring = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+
+      const job = await this.jobRepository.findById(req.params.id as string, organizationId);
+      if (!job) {
+        return this.notFound(res, `Job ${req.params.id} not found.`, 'JOB_NOT_FOUND');
+      }
+
+      job.setScoringWeights(req.body.weights);
+      await this.jobRepository.update(job.getId(), job, organizationId);
+
+      return this.ok(res, { success: true, weights: job.getScoringWeights() });
+    } catch (error) {
+      return next(error);
+    }
+  };
 }

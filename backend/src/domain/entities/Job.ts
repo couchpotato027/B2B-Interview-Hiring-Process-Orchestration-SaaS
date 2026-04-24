@@ -1,5 +1,13 @@
 export type JobStatus = 'open' | 'closed';
 
+export interface ScoringWeights {
+  skillMatch?: number;
+  experience?: number;
+  education?: number;
+  projects?: number;
+  culturalFit?: number;
+}
+
 export interface JobProps {
   id: string;
   organizationId: string;
@@ -10,6 +18,7 @@ export interface JobProps {
   preferredSkills: string[];
   requiredExperience: number;
   status: JobStatus;
+  scoringWeights?: ScoringWeights;
 }
 
 export class Job {
@@ -22,6 +31,7 @@ export class Job {
   private preferredSkills: string[];
   private requiredExperience: number;
   private status: JobStatus;
+  private scoringWeights?: ScoringWeights;
 
   constructor(props: JobProps) {
     this.id = Job.requireNonEmpty(props.id, 'Job id is required.');
@@ -33,6 +43,7 @@ export class Job {
     this.preferredSkills = Job.normalizeSkills(props.preferredSkills);
     this.requiredExperience = Job.validateExperience(props.requiredExperience);
     this.status = props.status;
+    this.scoringWeights = props.scoringWeights;
   }
 
   public getId(): string {
@@ -69,6 +80,14 @@ export class Job {
 
   public getStatus(): JobStatus {
     return this.status;
+  }
+
+  public getScoringWeights(): ScoringWeights | undefined {
+    return this.scoringWeights;
+  }
+
+  public setScoringWeights(weights: ScoringWeights): void {
+    this.scoringWeights = weights;
   }
 
   public addRequiredSkill(skill: string): void {

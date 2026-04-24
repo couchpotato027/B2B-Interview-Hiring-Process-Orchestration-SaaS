@@ -1,0 +1,33 @@
+{
+  "common": {
+    "dashboard": "Tableau de bord",
+    "jobs": "Emplois",
+    "candidates": "Candidats",
+    "pipelines": "Pipelines",
+    "reports": "Rapports",
+    "settings": "Paramètres",
+    "auditLog": "Journal d'audit",
+    "logout": "Déconnexion",
+    "search": "Rechercher des candidats...",
+    "actions": {
+      "create": "Créer",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "view": "Voir",
+      "hire": "Recruter",
+      "reject": "Rejeter"
+    },
+    "candidate": {
+      "status": {
+        "active": "Actif",
+        "hired": "Recruté",
+        "rejected": "Refusé",
+        "on_hold": "En attente"
+      },
+      "details": "Détails du candidat",
+      "history": "Historique des entretiens"
+    }
+  }
+}

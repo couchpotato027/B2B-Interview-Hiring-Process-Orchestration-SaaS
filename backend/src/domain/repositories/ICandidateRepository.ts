@@ -5,6 +5,7 @@ import type { PaginatedResult, PaginationParams } from '../types/Pagination';
 export interface CandidateFilters extends PaginationParams {
   status?: CandidateStatus;
   organizationId?: string;
+  assignedToUserId?: string;
 }
 
 export interface ICandidateRepository extends IRepository<Candidate> {

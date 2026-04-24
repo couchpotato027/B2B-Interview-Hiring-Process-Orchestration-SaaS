@@ -112,4 +112,30 @@ jobRouter.get('/:id/market-insights', (req, res, next) => new JobController().ge
  */
 jobRouter.get('/:id/comparative-analysis', (req, res, next) => new JobController().getComparativeAnalysis(req, res, next));
 
+/**
+ * @openapi
+ * /jobs/{id}/configure-scoring:
+ *   post:
+ *     tags: [Jobs]
+ *     summary: Update job scoring weights
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               weights:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Weights updated successfully
+ */
+jobRouter.post('/:id/configure-scoring', (req, res, next) => new JobController().configureScoring(req, res, next));
+
 export { jobRouter };

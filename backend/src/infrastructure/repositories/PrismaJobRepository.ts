@@ -42,6 +42,10 @@ export class PrismaJobRepository implements IJobRepository {
       status: job.getStatus().toUpperCase(),
       department: job.getDepartment() || 'General',
       description: job.getDescription() || '',
+      requiredSkills: job.getRequiredSkills(),
+      preferredSkills: job.getPreferredSkills(),
+      requiredExperience: job.getRequiredExperience(),
+      scoringWeights: job.getScoringWeights() || {},
     };
 
     const saved = await this.prisma.job.upsert({
@@ -59,6 +63,10 @@ export class PrismaJobRepository implements IJobRepository {
       status: job.getStatus().toUpperCase(),
       department: job.getDepartment(),
       description: job.getDescription(),
+      requiredSkills: job.getRequiredSkills(),
+      preferredSkills: job.getPreferredSkills(),
+      requiredExperience: job.getRequiredExperience(),
+      scoringWeights: job.getScoringWeights() || {},
     };
 
     const updated = await this.prisma.job.update({
@@ -98,10 +106,11 @@ export class PrismaJobRepository implements IJobRepository {
       title: model.title,
       department: model.department || 'General',
       description: model.description || 'Job Description',
-      requiredSkills: ['Software Engineering'], // Satisfy strict Job domain entity
-      preferredSkills: [],
-      requiredExperience: 0,
+      requiredSkills: model.requiredSkills || [],
+      preferredSkills: model.preferredSkills || [],
+      requiredExperience: model.requiredExperience || 0,
       status: model.status.toLowerCase() as JobStatus,
+      scoringWeights: model.scoringWeights || {},
     });
     
     // Attach count for transformer

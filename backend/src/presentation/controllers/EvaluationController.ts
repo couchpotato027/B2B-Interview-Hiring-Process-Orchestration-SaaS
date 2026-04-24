@@ -152,4 +152,45 @@ export class EvaluationController extends BaseController {
       return next(error);
     }
   };
+
+  public recalculateEvaluation = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string);
+
+      if (!organizationId) {
+        return this.badRequest(res, 'Organization ID is required.', 'MISSING_ORGANIZATION_ID');
+      }
+
+      // Fetch the existing evaluation first to get candidateId and jobId
+      const existing = await prisma.evaluation.findFirst({
+        where: { id: req.params.id, tenantId: organizationId }
+      });
+
+      if (!existing) {
+        return this.notFound(res, 'Evaluation not found.', 'EVALUATION_NOT_FOUND');
+      }
+
+      const result = await this.evaluateCandidateUseCase.execute({
+        candidateId: existing.candidateId,
+        jobId: existing.jobId,
+        organizationId
+      });
+
+      if (!result.success) {
+        return this.serverError(res, { message: result.error as string, code: result.code });
+      }
+
+      const dto = EvaluationTransformer.toDTO(result.data);
+      wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: dto.jobId });
+
+      return this.ok(res, dto);
+    } catch (error) {
+      return next(error);
+    }
+  };
 }
