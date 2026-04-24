@@ -45,7 +45,7 @@ export class PrismaJobRepository implements IJobRepository {
       requiredSkills: job.getRequiredSkills(),
       preferredSkills: job.getPreferredSkills(),
       requiredExperience: job.getRequiredExperience(),
-      scoringWeights: job.getScoringWeights() || {},
+      scoringWeights: (job.getScoringWeights() || {}) as any,
     };
 
     const saved = await this.prisma.job.upsert({
@@ -66,7 +66,7 @@ export class PrismaJobRepository implements IJobRepository {
       requiredSkills: job.getRequiredSkills(),
       preferredSkills: job.getPreferredSkills(),
       requiredExperience: job.getRequiredExperience(),
-      scoringWeights: job.getScoringWeights() || {},
+      scoringWeights: (job.getScoringWeights() || {}) as any,
     };
 
     const updated = await this.prisma.job.update({

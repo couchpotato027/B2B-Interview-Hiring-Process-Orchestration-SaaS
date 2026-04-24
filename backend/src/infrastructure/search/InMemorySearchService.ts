@@ -159,7 +159,7 @@ export class InMemorySearchService implements ISearchService {
       email: candidate.getEmail(),
       skills: candidate.getSkills(),
       experienceYears: candidate.getYearsOfExperience(),
-      education: candidate.getEducation(),
+      education: candidate.getEducation().map(e => `${e.degree} ${e.fieldOfStudy}`).join(', '),
       stageId: pipelineStatus?.getCurrentStageId() || '',
       jobId: '', 
       pipelineId: pipelineStatus?.getPipelineId() || '',

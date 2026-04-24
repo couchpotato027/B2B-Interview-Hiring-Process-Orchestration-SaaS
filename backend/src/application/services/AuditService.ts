@@ -63,7 +63,7 @@ export class AuditService {
         skip,
         take,
         orderBy: { createdAt: 'desc' },
-        include: { user: { select: { id: true, name: true, email: true } } }
+        include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } }
       }),
       prisma.auditLog.count({ where })
     ]);

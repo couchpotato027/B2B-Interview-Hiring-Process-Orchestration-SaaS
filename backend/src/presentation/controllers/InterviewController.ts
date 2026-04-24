@@ -43,7 +43,7 @@ export class InterviewController extends BaseController {
       const tenantId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const result = await this.submitFeedbackUseCase.execute({
-        interviewId: req.params.id,
+        interviewId: req.params.id as string,
         feedback: req.body.feedback,
         tenantId
       });
@@ -63,7 +63,7 @@ export class InterviewController extends BaseController {
         const authReq = req as AuthenticatedRequest;
         const tenantId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
-        const interviews = await this.interviewRepository.findByCandidateId(req.params.candidateId, tenantId);
+        const interviews = await this.interviewRepository.findByCandidateId(req.params.candidateId as string, tenantId);
         return this.ok(res, interviews);
     } catch (error) {
         return next(error);

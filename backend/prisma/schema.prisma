@@ -56,6 +56,7 @@ model User {
   role         Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
   evaluations  Evaluation[]
   interviewPanels InterviewPanelMember[]
+  interviews   Interview[] @relation("InterviewLead")
   auditLogs    AuditLog[]
   notifications Notification[]
   managedJobs  Job[]        @relation("HiringManager")
@@ -70,6 +71,7 @@ model Job {
   tenantId           String
   title              String
   department         String   @default("")
+  description        String   @default("")
   hiringManagerId    String?
   pipelineTemplateId String?
   requiredSkills     String[] @default([])
@@ -221,6 +223,8 @@ model Interview {
   tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   candidate   Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   stage       PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  interviewerId String?
+  interviewer   User?         @relation("InterviewLead", fields: [interviewerId], references: [id], onDelete: SetNull)
   panel       InterviewPanelMember[]
 
   @@index([tenantId, candidateId])

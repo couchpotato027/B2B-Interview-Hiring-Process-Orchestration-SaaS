@@ -62,3 +62,9 @@ export interface SkillsReport {
   highestSupply: string[];
   criticalSkillGaps: string[];
 }
+
+export interface DashboardData {
+    metrics: HiringMetrics;
+    velocity: VelocityMetrics;
+    recommendations: string[];
+}

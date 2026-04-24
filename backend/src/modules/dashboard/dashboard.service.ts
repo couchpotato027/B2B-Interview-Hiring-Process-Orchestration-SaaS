@@ -52,7 +52,7 @@ export class DashboardService {
             include: {
                 candidate: { select: { firstName: true, lastName: true, email: true } },
                 stage: { select: { name: true } },
-                interviewer: { select: { firstName: true, lastName: true, email: true } },
+                panel: { include: { user: { select: { firstName: true, lastName: true, email: true } } } },
             },
         });
     }

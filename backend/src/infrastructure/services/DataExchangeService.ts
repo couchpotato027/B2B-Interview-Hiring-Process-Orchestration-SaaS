@@ -41,7 +41,7 @@ export class DataExchangeService {
     
     if (rows.length < 2) return { success: 0, errors: [] };
 
-    const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const headers = (rows[0] as string).split(',').map(h => h.trim().replace(/^"|"$/g, ''));
     const dataRows = rows.slice(1);
 
     let successCount = 0;

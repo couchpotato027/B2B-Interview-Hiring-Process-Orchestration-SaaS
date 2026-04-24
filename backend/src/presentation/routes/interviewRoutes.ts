@@ -24,7 +24,7 @@ const feedbackSchema = z.object({
         notes: z.string().min(1),
         strengths: z.array(z.string()).default([]),
         weaknesses: z.array(z.string()).default([]),
-        rubricResponses: z.record(z.any()).optional()
+        rubricResponses: z.record(z.string(), z.any()).optional()
     })
 });
 

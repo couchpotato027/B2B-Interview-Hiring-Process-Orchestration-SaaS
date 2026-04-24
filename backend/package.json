@@ -29,6 +29,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1027.0",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
+    "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
     "bull": "^4.12.0",
     "bullmq": "^5.73.3",

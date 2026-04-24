@@ -14,7 +14,7 @@ export const defaultScoringExample = async () => {
     resumeId: 'resume-1',
     skills: ['TypeScript', 'Node.js', 'PostgreSQL', 'Docker'],
     yearsOfExperience: 4,
-    education: 'B.Tech in Computer Science',
+    education: [{ institution: 'IIT Bombay', degree: 'B.Tech', fieldOfStudy: 'Computer Science' }],
     projects: [
       {
         title: 'Hiring Platform',
@@ -58,7 +58,7 @@ export const customScoringExample = async () => {
     resumeId: 'resume-2',
     skills: ['TypeScript', 'Express'],
     yearsOfExperience: 2,
-    education: 'B.E. in Information Technology',
+    education: [{ institution: 'GTU', degree: 'B.E.', fieldOfStudy: 'Information Technology' }],
     projects: [
       {
         title: 'API Gateway',

@@ -103,6 +103,29 @@ export class AnalyticsService {
     };
   }
 
+  async calculateHiringMetrics(organizationId: string): Promise<HiringMetrics> {
+    const stats = await this.getDashboardMetrics(organizationId, '30');
+    return {
+      totalCandidates: stats.activeCandidates.count * 2, // Placeholder
+      activeCandidates: stats.activeCandidates.count,
+      totalEvaluations: 0,
+      avgTimeToHire: stats.timeToHire.avgDays,
+      avgTimePerStage: {},
+      offerAcceptanceRate: stats.offersAccepted.rate,
+      topSources: [],
+      skillGaps: []
+    };
+  }
+
+  async calculateHiringVelocity(organizationId: string): Promise<VelocityMetrics> {
+    const trend = await this.getTimeToHireTrend(organizationId, '6m');
+    return {
+      candidatesAdded: trend,
+      evaluationsCompleted: [],
+      trend: 'stable'
+    };
+  }
+
   async getTimeToHireTrend(organizationId: string, range: string): Promise<any[]> {
     const months = range === '6m' ? 6 : 12;
     const result = [];

@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { AnalyticsController } from '../controllers/AnalyticsController';
 import { Container } from '../../infrastructure/di/Container';
 import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
+import { AnalyticsService } from '../../application/services/AnalyticsService';
 
 const analyticsRouter = Router();
 const container = Container.getInstance();
@@ -25,7 +26,7 @@ analyticsRouter.get('/dashboard/metrics', async (req, res, next) => {
         
         const metrics = await service.getDashboardMetrics(organizationId, dateRange);
         res.status(200).json(metrics);
-    } catch (e) { next(e); }
+    } catch (e) { return next(e); }
 });
 
 analyticsRouter.get('/dashboard/trends', async (req, res, next) => {
@@ -42,7 +43,7 @@ analyticsRouter.get('/dashboard/trends', async (req, res, next) => {
         }
         
         res.status(400).json({ message: 'Invalid metric' });
-    } catch (e) { next(e); }
+    } catch (e) { return next(e); }
 });
 
 // Legacy /stats support for existing frontend code
@@ -60,7 +61,7 @@ analyticsRouter.get('/stats', async (req, res, next) => {
             offersAccepted: metrics.offersAccepted.count,
             avgTimeToHireDays: metrics.timeToHire.avgDays,
         });
-    } catch (e) { next(e); }
+    } catch (e) { return next(e); }
 });
 
 // Reports
@@ -77,7 +78,7 @@ analyticsRouter.get('/funnel', async (req, res, next) => {
         const service = container.resolve<AnalyticsService>('AnalyticsService');
         const data = await service.calculateConversionFunnel(pipelineId, organizationId);
         return res.status(200).json(data.stages || []); 
-    } catch (e) { next(e); }
+    } catch (e) { return next(e); }
 });
 
 analyticsRouter.get('/time-to-hire', async (req, res, next) => {
@@ -87,7 +88,7 @@ analyticsRouter.get('/time-to-hire', async (req, res, next) => {
         const service = container.resolve<AnalyticsService>('AnalyticsService');
         const data = await service.getTimeToHireTrend(organizationId, '6m');
         res.status(200).json(data);
-    } catch (e) { next(e); }
+    } catch (e) { return next(e); }
 });
 
 analyticsRouter.get('/dropoff', async (req, res, next) => {
@@ -109,7 +110,7 @@ analyticsRouter.get('/dropoff', async (req, res, next) => {
         }));
         
         res.status(200).json(dropoffData);
-    } catch (e) { next(e); }
+    } catch (e) { return next(e); }
 });
 
 analyticsRouter.get('/offer-rate', async (req, res, next) => {
@@ -124,7 +125,7 @@ analyticsRouter.get('/offer-rate', async (req, res, next) => {
             rejectedOffers: metrics.offersAccepted.total - metrics.offersAccepted.count, 
             totalOffers: metrics.offersAccepted.total 
         });
-    } catch (e) { next(e); }
+    } catch (e) { return next(e); }
 });
 
 // Job Analytics

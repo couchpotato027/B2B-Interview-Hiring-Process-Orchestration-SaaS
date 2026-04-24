@@ -21,10 +21,10 @@ export class StageTransitionObserver implements IObserver<CandidateMovedStageEve
         data: {
           tenantId: organizationId,
           userId: movedBy.includes('@') ? null : movedBy, // userId expected in schema is UUID if UUID but some might pass email
-          action: 'CANDIDATE_MOVED_STAGE',
-          entityType: 'Candidate',
-          entityId: candidateId,
-          metadata: {
+          action: 'UPDATE',
+          resource: 'Candidate',
+          resourceId: candidateId,
+          changes: {
             fromStageId,
             toStageId,
             pipelineId,

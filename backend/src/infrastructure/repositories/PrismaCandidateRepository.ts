@@ -36,8 +36,8 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       status: candidate.getStatus().toUpperCase(),
       skills: candidate.getSkills(),
       yearsOfExperience: candidate.getYearsOfExperience(),
-      education: candidate.getEducation(),
-      projects: candidate.getProjects(),
+      education: candidate.getEducation() as any,
+      projects: candidate.getProjects() as any,
     };
 
     const saved = await this.prisma.candidate.upsert({
@@ -57,8 +57,8 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       status: candidate.getStatus().toUpperCase(),
       skills: candidate.getSkills(),
       yearsOfExperience: candidate.getYearsOfExperience(),
-      education: candidate.getEducation(),
-      projects: candidate.getProjects(),
+      education: candidate.getEducation() as any,
+      projects: candidate.getProjects() as any,
     };
 
     const updated = await this.prisma.candidate.update({
