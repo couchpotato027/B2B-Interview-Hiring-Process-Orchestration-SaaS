@@ -42,7 +42,7 @@ export class CandidateTransformer {
       phone: candidate.getPhone(),
       skills: candidate.getSkills(),
       yearsOfExperience: candidate.getYearsOfExperience(),
-      education: candidate.getEducation(),
+      education: candidate.getEducation().map(e => `${e.degree} at ${e.institution}`).join(', '),
       status: candidate.getStatus(),
       projects: candidate.getProjects().map(p => ({
         title: p.title,

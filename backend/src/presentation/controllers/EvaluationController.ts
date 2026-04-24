@@ -167,8 +167,9 @@ export class EvaluationController extends BaseController {
       }
 
       // Fetch the existing evaluation first to get candidateId and jobId
-      const existing = await prisma.evaluation.findFirst({
-        where: { id: req.params.id, tenantId: organizationId }
+      const existing = await (prisma.evaluation.findFirst as any)({
+        where: { id: req.params.id, tenantId: organizationId },
+        include: { candidate: { select: { jobId: true } } }
       });
 
       if (!existing) {
@@ -177,7 +178,7 @@ export class EvaluationController extends BaseController {
 
       const result = await this.evaluateCandidateUseCase.execute({
         candidateId: existing.candidateId,
-        jobId: existing.jobId,
+        jobId: existing.candidate?.jobId || 'legacy-job',
         organizationId
       });
 
