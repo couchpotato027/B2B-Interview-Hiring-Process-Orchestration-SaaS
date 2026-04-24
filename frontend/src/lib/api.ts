@@ -208,3 +208,9 @@ export const emailApi = {
     bulkSend: (data: any) => fetchWithAuth('/emails/bulk', { method: 'POST', body: JSON.stringify(data) }),
     getHistory: (candidateId: string) => fetchWithAuth(`/emails/history/${candidateId}`),
 };
+
+export const notificationApi = {
+    getNotifications: () => fetchWithAuth('/notifications'),
+    markAsRead: (id: string) => fetchWithAuth(`/notifications/${id}/read`, { method: 'PUT' }),
+    markAllAsRead: () => fetchWithAuth('/notifications/read-all', { method: 'PUT' }),
+};

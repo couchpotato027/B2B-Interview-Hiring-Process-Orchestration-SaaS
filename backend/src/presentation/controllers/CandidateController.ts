@@ -52,7 +52,14 @@ export class CandidateController extends BaseController {
         include: { currentStage: true, pipeline: true, job: true },
       });
 
-      wsService.emit(tenantId, 'CANDIDATE_ADDED', candidate);
+      const createdBy = authReq.user?.userId;
+      wsService.emit(tenantId, 'candidate:created', { candidateId: candidate.id, name: `${candidate.firstName} ${candidate.lastName}`, jobId: candidate.jobId, createdBy });
+      
+      if (createdBy) {
+        await prisma.notification.create({
+          data: { tenantId, userId: createdBy, type: 'CANDIDATE_CREATED', title: 'New Candidate', message: `${candidate.firstName} ${candidate.lastName} applied.` }
+        });
+      }
       
       // Auto-send application received email
       addEmailToQueue({
@@ -354,7 +361,14 @@ export class CandidateController extends BaseController {
         return this.serverError(res, { message: String(result.error), code: result.code });
       }
       const dto = CandidateTransformer.toDetailedDTO(result.data);
-      wsService.emit(organizationId, 'CANDIDATE_ADDED', dto);
+      const createdBy = authReq.user?.userId;
+      wsService.emit(organizationId, 'candidate:created', { candidateId: dto.id, name: `${dto.firstName} ${dto.lastName}`, jobId: dto.jobId, createdBy });
+      
+      if (createdBy) {
+        await prisma.notification.create({
+          data: { tenantId: organizationId, userId: createdBy, type: 'CANDIDATE_CREATED', title: 'New Candidate', message: `${dto.firstName} ${dto.lastName} resume parsed.` }
+        });
+      }
       return this.rawOk(res, dto);
     } catch (error) {
       return next(error);
@@ -377,6 +391,17 @@ export class CandidateController extends BaseController {
         movedBy: authReq.user?.userId || 'admin@hireflow.com',
         reason: req.body.reason,
       });
+
+      const movedBy = authReq.user?.userId;
+      wsService.emit(organizationId, 'candidate:moved', { candidateId: id, fromStage: candidate.getCurrentStageId(), toStage: newStageId, movedBy });
+      
+      if (movedBy) {
+        // Find assigned recruiter or someone to notify
+        await prisma.notification.create({
+          data: { tenantId: organizationId, userId: movedBy, type: 'STAGE_MOVED', title: 'Stage Updated', message: `Candidate was moved to a new stage.` }
+        });
+      }
+
       return this.rawOk(res, result);
     } catch (error) {
       return next(error);

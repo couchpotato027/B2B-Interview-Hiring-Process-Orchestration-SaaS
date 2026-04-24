@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Bell, Search, Menu, X } from 'lucide-react';
 import { authApi } from '@/lib/api';
+import { NotificationCenter } from './NotificationCenter';
 import ThemeToggle from './ThemeToggle';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
@@ -66,13 +67,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     {/* Separator */}
                     <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-border ml-2" aria-hidden="true" />
                     
-                    <button type="button" className="-m-2.5 p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                        <span className="sr-only">View notifications</span>
-                        <div className="relative">
-                            <Bell className="h-5 w-5" aria-hidden="true" />
-                            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-background" />
-                        </div>
-                    </button>
+                    <NotificationCenter />
 
                     {/* Profile dropdown */}
                     <div className="relative">

@@ -12,6 +12,7 @@ import { interviewRouter } from './interviewRoutes';
 import { complianceRouter } from './complianceRoutes';
 import auditRouter from '../../modules/audit/audit.routes';
 import { emailRouter } from './emailRoutes';
+import { notificationRouter } from './notificationRoutes';
 import { authMiddleware } from '../../infrastructure/middleware/AuthMiddleware';
 import { auditMiddleware } from '../../infrastructure/middleware/AuditMiddleware';
 
@@ -38,5 +39,6 @@ apiRouter.use('/interviews', interviewRouter);
 apiRouter.use('/audit', auditRouter);
 apiRouter.use('/compliance', complianceRouter);
 apiRouter.use('/emails', emailRouter);
+apiRouter.use('/notifications', notificationRouter);
 
 export { apiRouter };

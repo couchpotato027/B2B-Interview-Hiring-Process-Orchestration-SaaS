@@ -7,6 +7,7 @@ import { BatchEvaluationUseCase } from '../../application/use-cases/BatchEvaluat
 import { EvaluationTransformer } from '../transformers/EvaluationTransformer';
 import { wsService } from '../integration/websocket';
 import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
+import { prisma } from '../../infrastructure/database/prisma.client';
 
 export class EvaluationController extends BaseController {
   private get evaluateCandidateUseCase() {
@@ -53,8 +54,15 @@ export class EvaluationController extends BaseController {
       const dto = EvaluationTransformer.toDTO(result.data);
       
       // Emit real-time events
-      wsService.emit(organizationId, 'EVALUATION_COMPLETED', dto);
+      const evaluatedBy = authReq.user?.userId;
+      wsService.emit(organizationId, 'candidate:evaluated', { candidateId: dto.candidateId, jobId: dto.jobId, score: dto.score, evaluatedBy });
       wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: dto.jobId });
+
+      if (evaluatedBy) {
+        await prisma.notification.create({
+          data: { tenantId: organizationId, userId: evaluatedBy, type: 'CANDIDATE_EVALUATED', title: 'Evaluation Submitted', message: `Evaluation for candidate completed.` }
+        });
+      }
 
       return this.created(res, dto);
     } catch (error) {
@@ -122,13 +130,18 @@ export class EvaluationController extends BaseController {
         EvaluationTransformer.toDTO(e),
       );
 
+      const evaluatedBy = authReq.user?.userId;
+      
       // Emit real-time events for each successful evaluation
-      transformedSuccessful.forEach((dto: any) => {
-        wsService.emit(organizationId, 'EVALUATION_COMPLETED', dto);
-      });
+      for (const dto of transformedSuccessful) {
+        wsService.emit(organizationId, 'candidate:evaluated', { candidateId: dto.candidateId, jobId: dto.jobId, score: dto.score, evaluatedBy });
+      }
 
-      if (transformedSuccessful.length > 0) {
+      if (transformedSuccessful.length > 0 && evaluatedBy) {
         wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: req.body.jobId });
+        await prisma.notification.create({
+          data: { tenantId: organizationId, userId: evaluatedBy, type: 'CANDIDATE_EVALUATED', title: 'Batch Evaluation Submitted', message: `${transformedSuccessful.length} evaluations completed.` }
+        });
       }
 
       return this.ok(res, {

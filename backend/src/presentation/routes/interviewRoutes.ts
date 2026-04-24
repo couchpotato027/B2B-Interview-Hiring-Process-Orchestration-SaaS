@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../../infrastructure/database/prisma.client';
 import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
+import { wsService } from '../integration/websocket';
 
 const interviewRouter = Router();
 
@@ -63,7 +64,20 @@ interviewRouter.post('/', async (req: Request, res: Response, next: NextFunction
       },
     });
 
-    return res.status(201).json(interview);
+      const interviewerName = interview.interviewer?.firstName || 'Interviewer';
+      wsService.emit(tenantId, 'interview:scheduled', { candidateId, interviewerId, scheduledAt: interview.scheduledAt });
+      
+      await prisma.notification.create({
+        data: {
+          tenantId,
+          userId: interviewerId,
+          type: 'INTERVIEW_SCHEDULED',
+          title: 'Interview Scheduled',
+          message: `You have an interview scheduled with candidate ${interview.candidate?.firstName || ''} on ${new Date(scheduledAt).toLocaleDateString()}`
+        }
+      });
+
+      return res.status(201).json(interview);
   } catch (err) { return next(err); }
 });
 
