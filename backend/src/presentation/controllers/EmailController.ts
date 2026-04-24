@@ -83,7 +83,7 @@ export class EmailController extends BaseController {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
       const tenantId = authReq.user?.organizationId || 'default-tenant-id';
-      const history = await emailService.getHistory(req.params.candidateId, tenantId);
+      const history = await emailService.getHistory(req.params.candidateId as string, tenantId);
       return this.rawOk(res, history);
     } catch (error) {
       return next(error);

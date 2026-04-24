@@ -49,7 +49,7 @@ export class CandidateController extends BaseController {
       const stage = await prisma.pipelineStage.findFirst({ where: { id: initialStageId, tenantId } });
       const candidate = await prisma.candidate.create({
         data: { tenantId, pipelineId, firstName, lastName, email, currentStageId: initialStageId, jobId: jobId || null, resumeUrl: resumeUrl || null, status: 'ACTIVE' },
-        include: { currentStage: true, pipeline: true },
+        include: { currentStage: true, pipeline: true, job: true },
       });
 
       wsService.emit(tenantId, 'CANDIDATE_ADDED', candidate);
@@ -219,7 +219,7 @@ export class CandidateController extends BaseController {
       const candidate = await prisma.candidate.findFirst({
         where: { id, tenantId },
         select: { createdAt: true, status: true, stageHistory: true, emailLogs: { select: { subject: true, status: true, createdAt: true } } }
-      });
+      } as any);
 
       if (!candidate) return this.notFound(res, 'Candidate not found');
 
@@ -228,7 +228,7 @@ export class CandidateController extends BaseController {
         { time: candidate.createdAt, label: 'Candidate profile created', type: 'created' }
       ];
 
-      candidate.emailLogs.forEach(email => {
+      (candidate as any).emailLogs?.forEach((email: any) => {
         events.push({
           time: email.createdAt,
           label: `Email Sent: ${email.subject} (${email.status})`,

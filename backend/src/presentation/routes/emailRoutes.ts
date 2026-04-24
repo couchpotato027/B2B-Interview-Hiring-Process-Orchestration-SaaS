@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { EmailController } from '../controllers/EmailController';
-import { AuthMiddleware } from '../../infrastructure/middleware/AuthMiddleware';
+import { authMiddleware } from '../../infrastructure/middleware/AuthMiddleware';
 
 const emailRouter = Router();
 const ctrl = new EmailController();
 
-emailRouter.use(AuthMiddleware);
+emailRouter.use(authMiddleware);
 
 emailRouter.get('/templates', ctrl.getTemplates);
 emailRouter.post('/send', ctrl.sendEmail);
