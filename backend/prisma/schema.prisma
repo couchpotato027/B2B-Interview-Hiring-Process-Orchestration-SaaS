@@ -55,7 +55,7 @@ model User {
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   role         Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
   evaluations  Evaluation[]
-  interviews   Interview[]
+  interviewPanels InterviewPanelMember[]
   auditLogs    AuditLog[]
   notifications Notification[]
   managedJobs  Job[]        @relation("HiringManager")
