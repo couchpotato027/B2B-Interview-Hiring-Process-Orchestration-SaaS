@@ -362,11 +362,11 @@ export class CandidateController extends BaseController {
       }
       const dto = CandidateTransformer.toDetailedDTO(result.data);
       const createdBy = authReq.user?.userId;
-      wsService.emit(organizationId, 'candidate:created', { candidateId: dto.id, name: `${dto.firstName} ${dto.lastName}`, jobId: dto.jobId, createdBy });
+      wsService.emit(organizationId, 'candidate:created', { candidateId: dto.candidate.id, name: `${dto.candidate.firstName} ${dto.candidate.lastName}`, jobId: (dto.candidate as any).jobId, createdBy });
       
       if (createdBy) {
         await prisma.notification.create({
-          data: { tenantId: organizationId, userId: createdBy, type: 'CANDIDATE_CREATED', title: 'New Candidate', message: `${dto.firstName} ${dto.lastName} resume parsed.` }
+          data: { tenantId: organizationId, userId: createdBy, type: 'CANDIDATE_CREATED', title: 'New Candidate', message: `${dto.candidate.firstName} ${dto.candidate.lastName} resume parsed.` }
         });
       }
       return this.rawOk(res, dto);
@@ -393,7 +393,7 @@ export class CandidateController extends BaseController {
       });
 
       const movedBy = authReq.user?.userId;
-      wsService.emit(organizationId, 'candidate:moved', { candidateId: id, fromStage: candidate.getCurrentStageId(), toStage: newStageId, movedBy });
+      wsService.emit(organizationId, 'candidate:moved', { candidateId: id, fromStage: (candidate as any).currentStageId || 'unknown', toStage: newStageId, movedBy });
       
       if (movedBy) {
         // Find assigned recruiter or someone to notify

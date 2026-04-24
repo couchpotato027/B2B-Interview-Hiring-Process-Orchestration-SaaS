@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { candidateApi, authApi, interviewApi, complianceApi } from '@/lib/api';
 import { EmailComposerModal } from './EmailComposerModal';
+import { ResumeViewer } from '@/components/candidates/ResumeViewer';
+import { ResumeUploadZone } from '@/components/candidates/ResumeUploadZone';
 
 interface DrawerProps {
   candidateId: string | null;
@@ -402,42 +404,20 @@ function ResumeTab({ candidate }: { candidate: any }) {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Resume Viewer Placeholder */}
-      <div className="relative group bg-slate-900 rounded-[2.5rem] overflow-hidden aspect-[4/5] shadow-2xl">
-         {candidate.resumeUrl ? (
-           <div className="absolute inset-0 flex items-center justify-center text-white/50 flex-col gap-4">
-             <FileText className="h-16 w-16 opacity-20" />
-             <p className="text-sm font-medium tracking-wide">Interactive PDF Viewer renders here</p>
-             <div className="flex gap-3">
-               <button className="px-6 py-2.5 rounded-2xl bg-white text-slate-900 font-bold text-sm hover:bg-[#c8ff00] transition-colors flex items-center gap-2">
-                 <Download className="h-4 w-4" /> Download PDF
-               </button>
-             </div>
-           </div>
-         ) : (
-           <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center text-white">
-              <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mb-6 ring-4 ring-slate-700/50">
-                <Upload className="h-8 w-8 text-slate-400" />
-              </div>
-              <h4 className="text-xl font-bold mb-2">No Resume Found</h4>
-              <p className="text-sm text-slate-400 mb-8 max-w-xs">Upload a resume to enable AI parsing and detailed candidate information.</p>
-              <button className="w-full py-4 rounded-3xl bg-[#c8ff00] text-slate-900 font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-transform">
-                UPLOAD CANDIDATE RESUME
-              </button>
-           </div>
-         )}
-
-         {/* Hover Controls */}
-         <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-[-10px] group-hover:translate-y-0">
-           <div className="flex bg-white/10 backdrop-blur-xl border border-white/20 p-2 rounded-2xl gap-1">
-             <button className="p-2 rounded-xl hover:bg-white/20 text-white"><Plus className="h-4 w-4" /></button>
-             <button className="p-2 rounded-xl hover:bg-white/20 text-white"><MinusIcon className="h-4 w-4" /></button>
-             <div className="w-px bg-white/20 mx-1" />
-             <button className="p-2 rounded-xl hover:bg-white/20 text-white"><RefreshCw className="h-4 w-4" /></button>
-           </div>
-         </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Resume Viewer / Upload Zone */}
+      <div className="h-[700px] flex flex-col">
+          {candidate.resumeUrl ? (
+             <ResumeViewer url={candidate.resumeUrl} onRefreshParse={simulateParse} className="h-full rounded-[2.5rem]" />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] p-8">
+               <ResumeUploadZone onUploadComplete={() => { window.location.reload(); }} />
+            </div>
+          )}
       </div>
+
+      <div className="space-y-8 overflow-auto h-[700px] pr-2">
+
 
       {/* Parsed Data */}
       <section>

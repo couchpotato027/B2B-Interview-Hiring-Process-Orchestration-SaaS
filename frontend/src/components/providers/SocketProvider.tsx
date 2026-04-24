@@ -43,23 +43,23 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Subscriptions to standard events
-    socketInstance.on('candidate:created', (data) => {
+    socketInstance.on('candidate:created', (data: any) => {
       toast.success(`New Candidate: ${data.name}`);
     });
 
-    socketInstance.on('candidate:moved', (data) => {
+    socketInstance.on('candidate:moved', (data: any) => {
       toast(`Candidate journey updated`, { icon: '🔄' });
     });
 
-    socketInstance.on('candidate:evaluated', (data) => {
+    socketInstance.on('candidate:evaluated', (data: any) => {
       toast.success(`Evaluation submitted for candidate`);
     });
 
-    socketInstance.on('interview:scheduled', (data) => {
+    socketInstance.on('interview:scheduled', (data: any) => {
       toast.success(`New interview scheduled!`);
     });
 
-    socketInstance.on('sla:breached', (data) => {
+    socketInstance.on('sla:breached', (data: any) => {
       toast.error(`SLA Breach Alert: Stage overdue.`);
     });
 

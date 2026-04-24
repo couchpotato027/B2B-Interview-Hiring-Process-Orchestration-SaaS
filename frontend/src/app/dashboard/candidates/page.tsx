@@ -7,6 +7,7 @@ import { candidateApi, pipelineApi, CandidateFilters } from '@/lib/api';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import BulkActionsToolbar from '@/components/candidates/BulkActionsToolbar';
 import { CandidateDetailDrawer } from '@/components/candidates/CandidateDetailDrawer';
+import { ResumeUploadZone } from '@/components/candidates/ResumeUploadZone';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface CandidateItem {
@@ -308,6 +309,30 @@ export default function CandidatesPage() {
             </div>
 
             <CandidateDetailDrawer candidateId={selectedCandidateId} onClose={() => setSelectedCandidateId(null)} onUpdate={load} />
+
+            {showAddModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setShowAddModal(false)} />
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <h3 className="text-lg font-bold text-slate-900">Upload Candidates</h3>
+                            <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600"><X className="h-5 w-5" /></button>
+                        </div>
+                        <div className="p-6">
+                            <ResumeUploadZone 
+                                onUploadComplete={(data) => {
+                                    load();
+                                    // Optionally select the newly created candidate
+                                    if(data && data.id) setSelectedCandidateId(data.id);
+                                }} 
+                            />
+                        </div>
+                        <div className="px-6 py-4 bg-slate-50 flex justify-end">
+                            <button onClick={() => setShowAddModal(false)} className="px-5 py-2 font-bold text-sm bg-slate-900 text-white rounded-xl shadow-sm hover:shadow-md transition-all">Done</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

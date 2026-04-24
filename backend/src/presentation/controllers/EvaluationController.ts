@@ -55,7 +55,7 @@ export class EvaluationController extends BaseController {
       
       // Emit real-time events
       const evaluatedBy = authReq.user?.userId;
-      wsService.emit(organizationId, 'candidate:evaluated', { candidateId: dto.candidateId, jobId: dto.jobId, score: dto.score, evaluatedBy });
+      wsService.emit(organizationId, 'candidate:evaluated', { candidateId: dto.candidateId, jobId: dto.jobId, score: (dto as any).score || 0, evaluatedBy });
       wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: dto.jobId });
 
       if (evaluatedBy) {
@@ -134,7 +134,7 @@ export class EvaluationController extends BaseController {
       
       // Emit real-time events for each successful evaluation
       for (const dto of transformedSuccessful) {
-        wsService.emit(organizationId, 'candidate:evaluated', { candidateId: dto.candidateId, jobId: dto.jobId, score: dto.score, evaluatedBy });
+        wsService.emit(organizationId, 'candidate:evaluated', { candidateId: dto.candidateId, jobId: dto.jobId, score: (dto as any).score || 0, evaluatedBy });
       }
 
       if (transformedSuccessful.length > 0 && evaluatedBy) {
