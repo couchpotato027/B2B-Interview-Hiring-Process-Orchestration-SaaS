@@ -17,10 +17,10 @@ export class StageTransitionObserver implements IObserver<CandidateMovedStageEve
     );
 
     try {
-      await prisma.auditLog.create({
+      await (prisma.auditLog.create as any)({
         data: {
           tenantId: organizationId,
-          userId: movedBy.includes('@') ? null : movedBy, // userId expected in schema is UUID if UUID but some might pass email
+          userId: movedBy.includes('@') ? null : movedBy,
           action: 'UPDATE',
           resource: 'Candidate',
           resourceId: candidateId,

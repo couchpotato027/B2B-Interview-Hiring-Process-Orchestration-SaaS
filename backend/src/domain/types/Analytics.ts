@@ -64,7 +64,20 @@ export interface SkillsReport {
 }
 
 export interface DashboardData {
-    metrics: HiringMetrics;
+    summary: {
+        totalCandidates: number;
+        activeApplications: number;
+        hiresThisMonth: number;
+        avgTimePerHire: number;
+    };
     velocity: VelocityMetrics;
-    recommendations: string[];
+    recentActivity: Array<{
+        type: string;
+        description: string;
+        timestamp: Date;
+    }>;
+    pipelineHealth: {
+        totalPipelines: number;
+        avgCompletionRate: number;
+    };
 }

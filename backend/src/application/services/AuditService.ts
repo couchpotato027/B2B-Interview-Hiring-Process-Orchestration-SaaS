@@ -25,7 +25,7 @@ export class AuditService {
 
   async log(data: AuditLogData): Promise<void> {
     try {
-      await prisma.auditLog.create({
+      await (prisma.auditLog.create as any)({
         data: {
           tenantId: data.tenantId,
           userId: data.userId,
@@ -35,7 +35,7 @@ export class AuditService {
           changes: data.changes || {},
           ipAddress: data.ipAddress,
           userAgent: data.userAgent,
-        },
+        } as any,
       });
     } catch (error) {
       console.error('Failed to create audit log:', error);
