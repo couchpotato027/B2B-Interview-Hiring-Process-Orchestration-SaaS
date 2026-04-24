@@ -21,7 +21,7 @@ export const apiKeyMiddleware = async (req: Request, res: Response, next: NextFu
 
         // Attach organization to request
         (req as any).organization = organization;
-        next();
+        return next();
     } catch (error) {
         return res.status(500).json({ error: 'Internal security check failure' });
     }

@@ -23,16 +23,16 @@ export const matchJob = async (req: Request, res: Response) => {
         const { resume, jobId } = req.body;
         if (!resume || !jobId) return res.status(400).json({ error: 'Missing required data' });
 
-        const job = await prisma.job.findUnique({ where: { id: jobId } });
+        const job = (await prisma.job.findUnique({ where: { id: jobId } })) as any;
         if (!job) return res.status(404).json({ error: 'Job not found' });
 
         // Build a job requirement string from available fields
         const jobRequirement = `
             Job Title: ${job.title}
             Department: ${job.department}
-            Required Skills: ${job.requiredSkills.join(', ')}
-            Preferred Skills: ${job.preferredSkills.join(', ')}
-            Required Experience: ${job.requiredExperience} years
+            Required Skills: ${job.requiredSkills?.join(', ') || ''}
+            Preferred Skills: ${job.preferredSkills?.join(', ') || ''}
+            Required Experience: ${job.requiredExperience || 0} years
         `;
 
         const result = await aiService.matchCandidateToJob(resume, jobRequirement);
@@ -45,7 +45,7 @@ export const matchJob = async (req: Request, res: Response) => {
 export const detectDuplicates = async (req: Request, res: Response) => {
     try {
         const { email, name } = req.body;
-        const organizationId = (req as any).user.organizationId || (req as any).user.tenantId;
+        const organizationId = (req as any).user?.organizationId || (req as any).user?.tenantId;
 
         const exactMatch = await prisma.candidate.findFirst({
             where: { email, tenantId: organizationId }
