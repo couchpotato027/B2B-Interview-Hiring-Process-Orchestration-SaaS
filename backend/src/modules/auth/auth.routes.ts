@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { registerTenant, login, getMe, listUsers, createUser } from './auth.controller';
 import { tenantContextMiddleware } from '../../shared/middlewares/tenantContext.middleware';
-import { requireRole } from '../../shared/middlewares/rbac.middleware';
+import { requirePermission } from '../../shared/middlewares/rbac.middleware';
 
 const router = Router();
 
@@ -11,7 +11,7 @@ router.post('/login', login);
 
 // Protected routes
 router.get('/me', tenantContextMiddleware, getMe);
-router.get('/users', tenantContextMiddleware, listUsers);
-router.post('/users', tenantContextMiddleware, requireRole('ADMIN'), createUser);
+router.get('/users', tenantContextMiddleware, requirePermission('User', 'READ'), listUsers);
+router.post('/users', tenantContextMiddleware, requirePermission('User', 'CREATE'), createUser);
 
 export default router;

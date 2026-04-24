@@ -7,7 +7,14 @@ export const getAuditLogs = async (req: AppRequest, res: Response, next: NextFun
         const tenantId = req.user!.tenantId;
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 50;
-        const result = await auditService.getAuditLogs(tenantId, page, limit);
+        const filters = {
+            page,
+            limit,
+            userId: req.query.userId as string,
+            action: req.query.action as string,
+            resource: req.query.resource as string,
+        };
+        const result = await auditService.getAuditLogs(tenantId, filters);
         res.json(result);
     } catch (error) {
         next(error);

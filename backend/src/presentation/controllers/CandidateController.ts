@@ -198,6 +198,85 @@ export class CandidateController extends BaseController {
     }
   };
 
+  /** GET /candidates/:id/timeline — Candidate activity history */
+  public getTimeline = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const { id } = req.params;
+
+      const candidate = await prisma.candidate.findFirst({
+        where: { id, tenantId },
+        select: { createdAt: true, status: true, stageHistory: true }
+      });
+
+      if (!candidate) return this.notFound(res, 'Candidate not found');
+
+      // Construct events from creation, stage history, and current status
+      const events = [
+        { time: candidate.createdAt, label: 'Candidate profile created', type: 'created' }
+      ];
+
+      if (Array.isArray(candidate.stageHistory)) {
+        (candidate.stageHistory as any[]).forEach(h => {
+          events.push({
+            time: h.enteredAt || h.movedAt || new Date(),
+            label: h.stageName ? `Moved to ${h.stageName}` : 'Stage transition',
+            type: 'stage'
+          });
+        });
+      }
+
+      if (candidate.status !== 'ACTIVE') {
+        events.push({
+          time: new Date(),
+          label: `Status changed to ${candidate.status}`,
+          type: 'status'
+        });
+      }
+
+      // Add actual audits if any
+      const audits = await prisma.auditLog.findMany({
+        where: { tenantId, resource: 'Candidate', resourceId: id } as any,
+        orderBy: { createdAt: 'desc' }
+      });
+
+      audits.forEach(a => {
+        events.push({
+          time: a.createdAt,
+          label: a.action === 'CREATE' ? 'Candidate created' : `${a.action} action performed`,
+          type: 'audit'
+        });
+      });
+
+      return this.rawOk(res, events.sort((a,b) => new Date(b.time).getTime() - new Date(a.time).getTime()));
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  /** GET /candidates/:id/interviews — Candidate interview rounds */
+  public getInterviews = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const { id } = req.params;
+
+      const interviews = await prisma.interview.findMany({
+        where: { candidateId: id, tenantId },
+        include: {
+          interviewer: { select: { firstName: true, lastName: true, email: true } },
+          stage: { select: { name: true } }
+        },
+        orderBy: { scheduledAt: 'desc' }
+      });
+
+      return this.rawOk(res, interviews);
+    } catch (error) {
+      return next(error);
+    }
+  };
+
   /** POST /candidates/bulk-update — Bulk actions */
   public bulkUpdate = async (req: Request, res: Response, next: NextFunction) => {
     try {

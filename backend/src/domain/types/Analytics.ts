@@ -1,3 +1,32 @@
+export interface TrendResult {
+  label: string;
+  value: number;
+}
+
+export interface MetricWithTrend {
+  value: number;
+  trend: number;
+  isPositive: boolean;
+}
+
+export interface DashboardMetrics {
+  activeCandidates: MetricWithTrend;
+  timeToHire: {
+    avgDays: number;
+    trend: number;
+    isPositive: boolean;
+  };
+  slaBreaches: {
+    count: number;
+    message: string;
+  };
+  offersAccepted: {
+    count: number;
+    total: number;
+    rate: number;
+  };
+}
+
 export interface HiringMetrics {
   totalCandidates: number;
   activeCandidates: number;
@@ -32,30 +61,4 @@ export interface SkillsReport {
   mostInDemand: string[];
   highestSupply: string[];
   criticalSkillGaps: string[];
-}
-
-export interface RecruiterMetrics {
-  recruiterId: string;
-  evaluationsCompleted: number;
-  avgTimeToEvaluate: number;
-  successfulHires: number;
-}
-
-export interface DashboardData {
-  summary: {
-    totalCandidates: number;
-    activeApplications: number;
-    hiresThisMonth: number;
-    avgTimePerHire: number;
-  };
-  velocity: VelocityMetrics;
-  recentActivity: Array<{
-    type: string;
-    description: string;
-    timestamp: Date;
-  }>;
-  pipelineHealth: {
-    totalPipelines: number;
-    avgCompletionRate: number;
-  };
 }

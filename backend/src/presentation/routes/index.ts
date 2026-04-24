@@ -9,7 +9,10 @@ import { identityRouter } from './identityRoutes';
 import { fileRouter } from './fileRoutes';
 import { searchRouter } from './searchRoutes';
 import { interviewRouter } from './interviewRoutes';
+import { complianceRouter } from './complianceRoutes';
+import auditRouter from '../../modules/audit/audit.routes';
 import { authMiddleware } from '../../infrastructure/middleware/AuthMiddleware';
+import { auditMiddleware } from '../../infrastructure/middleware/AuditMiddleware';
 
 const apiRouter = Router();
 
@@ -19,6 +22,7 @@ apiRouter.use('/auth', identityRouter);
 
 // Protected routes
 apiRouter.use(authMiddleware);
+apiRouter.use(auditMiddleware);
 
 apiRouter.use('/candidates', candidateRouter);
 apiRouter.use('/jobs', jobRouter);
@@ -30,5 +34,7 @@ apiRouter.use('/dashboard', analyticsRouter);
 apiRouter.use('/files', fileRouter);
 apiRouter.use('/search', searchRouter);
 apiRouter.use('/interviews', interviewRouter);
+apiRouter.use('/audit', auditRouter);
+apiRouter.use('/compliance', complianceRouter);
 
 export { apiRouter };

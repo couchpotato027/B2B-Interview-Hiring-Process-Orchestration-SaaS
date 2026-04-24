@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { TestDataBuilder } from '../../../helpers/TestDataBuilder';
 
 describe('Job', () => {

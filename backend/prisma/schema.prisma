@@ -212,16 +212,18 @@ model AuditLog {
   id         String   @id @default(uuid())
   tenantId   String
   userId     String?
-  action     String   // e.g., 'CANDIDATE_MOVED_STAGE', 'FEEDBACK_SUBMITTED', 'DECISION_FINALIZED', 'USER_LOGIN'
-  entityType String   // e.g., 'Candidate', 'Evaluation', 'Decision'
-  entityId   String
-  metadata   Json?
+  action     String   // CREATE, UPDATE, DELETE, VIEW, EXPORT, LOGIN
+  resource   String   // Candidate, Job, Evaluation
+  resourceId String?
+  changes    Json?    // Stores before/after values
+  ipAddress  String?
+  userAgent  String?
   createdAt  DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, resource, resourceId])
   @@index([tenantId, createdAt])
 }
 

@@ -25,6 +25,8 @@ candidateRouter.post('/', (req, res, next) => ctrl().createCandidate(req, res, n
 
 // ─── Per-Candidate Routes ───────────────────────────────────────────────────
 candidateRouter.get('/:id', (req, res, next) => ctrl().getCandidateById(req, res, next));
+candidateRouter.get('/:id/timeline', (req, res, next) => ctrl().getTimeline(req, res, next));
+candidateRouter.get('/:id/interviews', (req, res, next) => ctrl().getInterviews(req, res, next));
 candidateRouter.put('/:id', (req, res, next) => ctrl().updateCandidate(req, res, next));
 candidateRouter.delete('/:id', (req, res, next) => ctrl().deleteCandidate(req, res, next));
 

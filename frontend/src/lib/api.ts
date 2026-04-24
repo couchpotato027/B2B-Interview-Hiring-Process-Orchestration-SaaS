@@ -90,6 +90,8 @@ export const authApi = {
 // ─── Dashboard ─────────────────────────────────────────────────────
 export const dashboardApi = {
     getStats: () => fetchWithAuth('/dashboard/stats'),
+    getMetrics: (dateRange: string) => fetchWithAuth(`/dashboard/metrics?dateRange=${dateRange}`),
+    getTrends: (metric: string, dateRange: string) => fetchWithAuth(`/dashboard/trends?metric=${metric}&dateRange=${dateRange}`),
     getAlerts: () => fetchWithAuth('/dashboard/alerts'),
     getPendingEvaluations: () => fetchWithAuth('/dashboard/pending-evaluations'),
 };
@@ -132,6 +134,8 @@ export const candidateApi = {
     moveStage: (id: string, newStageId: string) => fetchWithAuth(`/candidates/${id}/stage`, { method: 'PUT', body: JSON.stringify({ newStageId }) }),
     reject: (id: string) => fetchWithAuth(`/candidates/${id}/reject`, { method: 'POST' }),
     hire: (id: string) => fetchWithAuth(`/candidates/${id}/hire`, { method: 'POST' }),
+    getTimeline: (id: string) => fetchWithAuth(`/candidates/${id}/timeline`),
+    getInterviews: (id: string) => fetchWithAuth(`/candidates/${id}/interviews`),
     bulkUpdate: (candidateIds: string[], action: string, payload: any) =>
         fetchWithAuth('/candidates/bulk-update', { method: 'POST', body: JSON.stringify({ candidateIds, action, payload }) }),
 };
@@ -185,7 +189,15 @@ export const reportsApi = {
     offerRate: () => fetchWithAuth('/reports/offer-rate'),
 };
 
-// ─── Audit ─────────────────────────────────────────────────────────
+// ─── Audit & Compliance ───────────────────────────────────────────
 export const auditApi = {
-    list: (page = 1, limit = 50) => fetchWithAuth(`/audit?page=${page}&limit=${limit}`),
+    list: (filters?: { page?: number; limit?: number; userId?: string; action?: string; resource?: string }) => {
+        const params = new URLSearchParams(filters as any).toString();
+        return fetchWithAuth(`/audit${params ? `?${params}` : ''}`);
+    },
+};
+
+export const complianceApi = {
+    exportData: (candidateId: string) => fetchWithAuth('/compliance/export-data', { method: 'POST', body: JSON.stringify({ candidateId }) }),
+    deleteData: (candidateId: string) => fetchWithAuth('/compliance/delete-data', { method: 'POST', body: JSON.stringify({ candidateId }) }),
 };

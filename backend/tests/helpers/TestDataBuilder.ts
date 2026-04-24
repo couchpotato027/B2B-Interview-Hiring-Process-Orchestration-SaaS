@@ -8,7 +8,8 @@ import { Resume } from '../../src/domain/entities/Resume';
 export class TestDataBuilder {
   public static candidate(overrides: Partial<{
     id: string;
-    tenantId: string;
+    organizationId: string;
+    pipelineId: string;
     name: string;
     email: string;
     phone: string;
@@ -21,7 +22,8 @@ export class TestDataBuilder {
   }> = {}): Candidate {
     return new Candidate({
       id: overrides.id ?? randomUUID(),
-      tenantId: overrides.tenantId ?? 'org-123',
+      organizationId: overrides.organizationId ?? 'org-123',
+      pipelineId: overrides.pipelineId ?? randomUUID(),
       name: overrides.name ?? 'Jane Doe',
       email: overrides.email ?? 'jane.doe@example.com',
       phone: overrides.phone ?? '1234567890',
@@ -44,7 +46,7 @@ export class TestDataBuilder {
 
   public static job(overrides: Partial<{
     id: string;
-    tenantId: string;
+    organizationId: string;
     title: string;
     department: string;
     description: string;
@@ -55,7 +57,7 @@ export class TestDataBuilder {
   }> = {}): Job {
     return new Job({
       id: overrides.id ?? randomUUID(),
-      tenantId: overrides.tenantId ?? 'org-123',
+      organizationId: overrides.organizationId ?? 'org-123',
       title: overrides.title ?? 'Backend Engineer',
       department: overrides.department ?? 'Engineering',
       description: overrides.description ?? 'Build backend services',
@@ -71,6 +73,7 @@ export class TestDataBuilder {
     candidateId: string;
     fileName: string;
     rawText: string;
+    organizationId: string;
   }> = {}): Resume {
     return new Resume({
       id: overrides.id ?? randomUUID(),
@@ -85,6 +88,7 @@ export class TestDataBuilder {
         education: 'B.Tech',
         projects: [{ title: 'Platform Project', description: 'Built internal tooling.' }],
       },
+      organizationId: overrides.organizationId ?? 'org-123',
       uploadedAt: new Date(),
     });
   }
@@ -99,6 +103,7 @@ export class TestDataBuilder {
     strengths: string[];
     weaknesses: string[];
     recommendation: 'highly_recommended' | 'recommended' | 'consider' | 'not_recommended';
+    organizationId: string;
   }> = {}): Evaluation {
     return new Evaluation({
       id: overrides.id ?? randomUUID(),
@@ -110,6 +115,7 @@ export class TestDataBuilder {
       strengths: overrides.strengths ?? ['Strong TypeScript'],
       weaknesses: overrides.weaknesses ?? ['Needs more cloud experience'],
       recommendation: overrides.recommendation ?? 'recommended',
+      organizationId: overrides.organizationId ?? 'org-123',
       evaluatedAt: new Date(),
     });
   }

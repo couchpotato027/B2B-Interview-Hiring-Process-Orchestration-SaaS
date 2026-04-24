@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals';
 import { Candidate } from '../../../../src/domain/entities/Candidate';
 import { TestDataBuilder } from '../../../helpers/TestDataBuilder';
 

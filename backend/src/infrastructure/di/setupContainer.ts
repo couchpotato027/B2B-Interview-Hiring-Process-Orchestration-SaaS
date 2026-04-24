@@ -50,6 +50,7 @@ import { InMemoryEvaluationRepository } from '../repositories/InMemoryEvaluation
 import { InMemoryResumeRepository } from '../repositories/InMemoryResumeRepository';
 import { PrismaPipelineRepository } from '../repositories/PrismaPipelineRepository';
 import { PrismaCandidatePipelineStatusRepository } from '../repositories/PrismaCandidatePipelineStatusRepository';
+import { prisma } from '../database/prisma.client';
 import { InMemoryFileRepository } from '../repositories/InMemoryFileRepository';
 import { InMemorySavedSearchRepository } from '../repositories/InMemorySavedSearchRepository';
 
@@ -107,7 +108,8 @@ export const setupContainer = (): Container => {
     container.resolve('JobRepository'),
     container.resolve('EvaluationRepository'),
     container.resolve('PipelineRepository'),
-    container.resolve('CandidatePipelineStatusRepository')
+    container.resolve('CandidatePipelineStatusRepository'),
+    prisma
   ));
 
   container.register(

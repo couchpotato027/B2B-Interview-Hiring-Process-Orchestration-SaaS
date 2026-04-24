@@ -1,0 +1,40 @@
+{
+    "common": {
+        "dashboard": "Panel de control",
+        "jobs": "Empleos",
+        "candidates": "Candidatos",
+        "pipelines": "Tuberías",
+        "reports": "Informes",
+        "settings": "Ajustes",
+        "auditLog": "Registro de auditoría",
+        "logout": "Cerrar sesión",
+        "search": "Buscar...",
+        "filters": "Filtros",
+        "status": "Estado",
+        "stage": "Etapa",
+        "actions": "Acciones",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "delete": "Eliminar",
+        "export": "Exportar datos",
+        "anonymize": "Anonimizar datos"
+    },
+    "candidates": {
+        "title": "Directorio de candidatos",
+        "add": "Agregar candidato",
+        "activeFilters": "Filtros activos",
+        "clearAll": "Borrar todo",
+        "noResults": "No se encontraron candidatos que coincidan con sus filtros.",
+        "searchCount": "{{count}} resultados para '{{search}}'"
+    },
+    "audit": {
+        "title": "Registros de auditoría",
+        "description": "Rastros de cumplimiento detallados para la auditoría SOC 2 y GDPR.",
+        "user": "Usuario",
+        "action": "Acción",
+        "resource": "Recurso",
+        "context": "Contexto",
+        "timestamp": "Marca de tiempo",
+        "clearFilters": "Borrar filtros"
+    }
+}

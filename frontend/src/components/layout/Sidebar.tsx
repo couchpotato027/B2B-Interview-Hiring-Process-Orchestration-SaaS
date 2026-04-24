@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import {
     Users,
     LayoutDashboard,
@@ -9,21 +10,24 @@ import {
     GitMerge,
     BarChart,
     LogOut,
-    Layers
+    Layers,
+    Shield
 } from 'lucide-react';
 
-const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase },
-    { name: 'Pipeline Board', href: '/dashboard/pipelines', icon: Layers },
-    { name: 'Candidates', href: '/dashboard/candidates', icon: Users },
-    { name: 'Workflow Builder', href: '/dashboard/workflows', icon: GitMerge },
-    { name: 'Reports', href: '/dashboard/reports', icon: BarChart },
-    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-];
-
 export default function Sidebar() {
+    const { t } = useTranslation();
     const pathname = usePathname();
+
+    const navigation = [
+        { name: t('common.dashboard'), href: '/dashboard', icon: LayoutDashboard },
+        { name: t('common.jobs'), href: '/dashboard/jobs', icon: Briefcase },
+        { name: t('common.pipelines'), href: '/dashboard/pipelines', icon: Layers },
+        { name: t('common.candidates'), href: '/dashboard/candidates', icon: Users },
+        { name: 'Workflow Builder', href: '/dashboard/workflows', icon: GitMerge },
+        { name: t('common.reports'), href: '/dashboard/reports', icon: BarChart },
+        { name: t('common.auditLog'), href: '/dashboard/settings/audit', icon: Shield },
+        { name: t('common.settings'), href: '/dashboard/settings', icon: Settings },
+    ];
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -77,7 +81,7 @@ export default function Sidebar() {
                             className="group flex items-center gap-x-3 rounded-xl p-3 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors"
                         >
                             <LogOut className="h-5 w-5 shrink-0 text-slate-400 group-hover:text-red-400" aria-hidden="true" />
-                            Log out
+                            {t('common.logout')}
                         </button>
                     </li>
                 </ul>
