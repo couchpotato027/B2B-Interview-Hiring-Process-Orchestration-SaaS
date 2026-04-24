@@ -1,10 +1,14 @@
-let base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const envUrl = process.env.NEXT_PUBLIC_API_URL;
+let base = envUrl || 'http://localhost:3001';
+
 if (!base.startsWith('http')) {
     base = `https://${base}`;
 }
 export const API_BASE_URL = base.endsWith('/api/v1') ? base : `${base.replace(/\/$/, '')}/api/v1`;
 
-console.log('🌐 [HireFlow API] Initialized with Base URL:', API_BASE_URL);
+console.log('🌐 [HireFlow API] Initializing...');
+console.log('   - ENV Source:', envUrl || '(using fallback)');
+console.log('   - Computed Base:', API_BASE_URL);
 
 const apiCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 60000; // 60 seconds
