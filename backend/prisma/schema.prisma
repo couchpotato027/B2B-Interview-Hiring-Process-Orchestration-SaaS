@@ -27,6 +27,7 @@ model Tenant {
   interviews        Interview[]
   auditLogs         AuditLog[]
   notifications     Notification[]
+  emailLogs         EmailLog[]
 }
 
 model Role {
@@ -58,6 +59,7 @@ model User {
   notifications Notification[]
   managedJobs  Job[]        @relation("HiringManager")
   assignedCandidates Candidate[] @relation("AssignedRecruiter")
+  emailLogs    EmailLog[]
 
   @@unique([tenantId, email])
 }
@@ -140,6 +142,7 @@ model Candidate {
   decisions    Decision[]
   slaAlerts    SlaAlert[]
   interviews   Interview[]
+  emailLogs    EmailLog[]
 
   @@index([tenantId, pipelineId, currentStageId])
   @@index([tenantId, status])
@@ -241,4 +244,27 @@ model Notification {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, userId, isRead])
+}
+
+model EmailLog {
+  id          String   @id @default(uuid())
+  tenantId    String
+  candidateId String?
+  userId      String?
+  to          String
+  subject     String
+  body        String
+  status      String   @default("PENDING") // PENDING, SENT, FAILED, BOUNCED
+  errorMessage String?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, candidateId])
+  @@index([tenantId, createdAt])
 }

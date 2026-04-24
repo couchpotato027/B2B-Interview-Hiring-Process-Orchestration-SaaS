@@ -8,6 +8,7 @@ import {
   ExternalLink, GraduationCap, Code, Trophy, Layers, Filter
 } from 'lucide-react';
 import { candidateApi, authApi, interviewApi, complianceApi } from '@/lib/api';
+import { EmailComposerModal } from './EmailComposerModal';
 
 interface DrawerProps {
   candidateId: string | null;
@@ -38,6 +39,7 @@ export function CandidateDetailDrawer({ candidateId, onClose, onUpdate }: Drawer
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState({ first: '', last: '' });
+  const [showEmailModal, setShowEmailModal] = useState(false);
   
   // Data for secondary tabs
   const [interviews, setInterviews] = useState<any[]>([]);
@@ -204,7 +206,10 @@ export function CandidateDetailDrawer({ candidateId, onClose, onUpdate }: Drawer
           </div>
 
           <div className="mt-8 flex items-center gap-3">
-            <button className="inline-flex items-center gap-2 rounded-xl bg-[#0a0f1a] px-4 py-2.5 text-xs font-bold text-white shadow-lg hover:shadow-xl hover:translate-y-[-2px] transition-all">
+            <button 
+              onClick={() => setShowEmailModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#0a0f1a] px-4 py-2.5 text-xs font-bold text-white shadow-lg hover:shadow-xl hover:translate-y-[-2px] transition-all"
+            >
               <Mail className="h-4 w-4 text-[#c8ff00]" /> Send Email
             </button>
             <button className="inline-flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all">
@@ -246,6 +251,21 @@ export function CandidateDetailDrawer({ candidateId, onClose, onUpdate }: Drawer
             <ErrorState onRetry={loadData} />
           )}
         </div>
+
+        <EmailComposerModal 
+          isOpen={showEmailModal} 
+          onClose={() => setShowEmailModal(false)}
+          candidate={candidate ? {
+            id: candidate.id,
+            firstName: candidate.firstName,
+            lastName: candidate.lastName,
+            email: candidate.email,
+            jobTitle: candidate.job?.title
+          } : undefined}
+          onSent={() => {
+            loadData(); // Refresh history or timeline if needed
+          }}
+        />
       </div>
     </>
   );
@@ -636,6 +656,7 @@ function TimelineTab({ events }: { events: any[] }) {
             <div className={`absolute -left-[31px] top-0 h-4 w-4 rounded-full border-4 border-white ring-2 transition-all ${
               ev.label.toLowerCase().includes('hire') ? 'ring-[#c8ff00] bg-[#c8ff00]' : 
               ev.label.toLowerCase().includes('reject') ? 'ring-red-400 bg-red-400' :
+              ev.type === 'email' ? 'ring-blue-400 bg-blue-400' :
               'ring-slate-900 bg-slate-900'
             } group-hover:scale-125`} />
             

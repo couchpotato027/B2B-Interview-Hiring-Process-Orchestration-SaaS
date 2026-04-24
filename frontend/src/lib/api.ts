@@ -201,3 +201,10 @@ export const complianceApi = {
     exportData: (candidateId: string) => fetchWithAuth('/compliance/export-data', { method: 'POST', body: JSON.stringify({ candidateId }) }),
     deleteData: (candidateId: string) => fetchWithAuth('/compliance/delete-data', { method: 'POST', body: JSON.stringify({ candidateId }) }),
 };
+
+export const emailApi = {
+    getTemplates: () => fetchWithAuth('/emails/templates'),
+    send: (data: any) => fetchWithAuth('/emails/send', { method: 'POST', body: JSON.stringify(data) }),
+    bulkSend: (data: any) => fetchWithAuth('/emails/bulk', { method: 'POST', body: JSON.stringify(data) }),
+    getHistory: (candidateId: string) => fetchWithAuth(`/emails/history/${candidateId}`),
+};

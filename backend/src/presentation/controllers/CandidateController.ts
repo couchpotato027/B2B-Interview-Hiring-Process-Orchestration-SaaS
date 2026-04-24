@@ -11,6 +11,7 @@ import { CandidateTransformer } from '../transformers/CandidateTransformer';
 import { wsService } from '../integration/websocket';
 import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
 import { prisma } from '../../infrastructure/database/prisma.client';
+import { addEmailToQueue } from '../../infrastructure/queues/EmailQueue';
 
 export class CandidateController extends BaseController {
   private get processResumeUseCase() {
@@ -52,6 +53,16 @@ export class CandidateController extends BaseController {
       });
 
       wsService.emit(tenantId, 'CANDIDATE_ADDED', candidate);
+      
+      // Auto-send application received email
+      addEmailToQueue({
+        tenantId,
+        candidateId: candidate.id,
+        to: candidate.email,
+        subject: `We received your application for ${candidate.job?.title || 'the position'}`,
+        body: `Hi ${candidate.firstName},<br><br>Thank you for applying for the ${candidate.job?.title || 'position'}. We have received your application and will review it shortly.`,
+      }).catch(err => console.error('Failed to queue welcome email:', err));
+
       return this.created(res, candidate);
     } catch (error: any) {
       if (error?.code === 'P2002') return this.badRequest(res, 'A candidate with this email already exists.');
@@ -207,15 +218,23 @@ export class CandidateController extends BaseController {
 
       const candidate = await prisma.candidate.findFirst({
         where: { id, tenantId },
-        select: { createdAt: true, status: true, stageHistory: true }
+        select: { createdAt: true, status: true, stageHistory: true, emailLogs: { select: { subject: true, status: true, createdAt: true } } }
       });
 
       if (!candidate) return this.notFound(res, 'Candidate not found');
 
-      // Construct events from creation, stage history, and current status
-      const events = [
+      // Construct events from creation, stage history, email logs, and current status
+      const events: any[] = [
         { time: candidate.createdAt, label: 'Candidate profile created', type: 'created' }
       ];
+
+      candidate.emailLogs.forEach(email => {
+        events.push({
+          time: email.createdAt,
+          label: `Email Sent: ${email.subject} (${email.status})`,
+          type: 'email'
+        });
+      });
 
       if (Array.isArray(candidate.stageHistory)) {
         (candidate.stageHistory as any[]).forEach(h => {
