@@ -47,7 +47,7 @@ async function main() {
     },
   });
 
-  // 4. Create User
+  // 4. Create Users
   console.log('👤 Creating Admin User...');
   const passwordHash = await bcrypt.hash('password123', 10);
   const user = await prisma.user.create({
@@ -58,6 +58,18 @@ async function main() {
       passwordHash,
       firstName: 'Admin',
       lastName: 'User',
+    },
+  });
+
+  console.log('👤 Creating Recruiter User...');
+  const recruiterUser = await prisma.user.create({
+    data: {
+      tenantId: tenant.id,
+      roleId: recruiterRole.id,
+      email: 'recruiter@hireflow.com',
+      passwordHash,
+      firstName: 'Lead',
+      lastName: 'Recruiter',
     },
   });
 
@@ -148,8 +160,9 @@ async function main() {
   console.log('\n✨ Seeding Complete!');
   console.log('--------------------------------------------------');
   console.log('CREDENTIALS:');
-  console.log('Email: admin@hireflow.com');
-  console.log('Password: password123');
+  console.log('Admin Email: admin@hireflow.com');
+  console.log('Recruiter Email: recruiter@hireflow.com');
+  console.log('Password (for both): password123');
   console.log('Tenant ID: default-tenant-id');
   console.log('--------------------------------------------------');
 }

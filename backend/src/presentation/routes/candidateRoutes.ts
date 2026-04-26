@@ -38,5 +38,6 @@ candidateRouter.post('/:id/transition', (req, res, next) => ctrl().moveStage(req
 candidateRouter.put('/:id/stage', (req, res, next) => ctrl().moveStage(req, res, next));
 candidateRouter.post('/:id/reject', (req, res, next) => ctrl().reject(req, res, next));
 candidateRouter.post('/:id/hire', (req, res, next) => ctrl().hire(req, res, next));
+candidateRouter.patch('/:id/assign', (req, res, next) => ctrl().assignRecruiter(req, res, next));
 
 export { candidateRouter };

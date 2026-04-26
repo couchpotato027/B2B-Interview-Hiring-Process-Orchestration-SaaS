@@ -9,6 +9,8 @@ export interface AppConfigValues {
   logLevel: string;
   geminiApiKey: string;
   geminiModel: string;
+  groqApiKey: string;
+  groqModel: string;
   jwtSecret: string;
   // Storage
   storageProvider: 'local' | 's3';
@@ -47,6 +49,8 @@ export class AppConfig {
         logLevel: process.env.LOG_LEVEL ?? 'info',
         geminiApiKey: process.env.GEMINI_API_KEY ?? '',
         geminiModel: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
+        groqApiKey: process.env.GROQ_API_KEY ?? '',
+        groqModel: process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile',
         jwtSecret: process.env.JWT_SECRET ?? 'hireflow_development_secret_key_2024_!@#',
         // Storage
         storageProvider: (process.env.STORAGE_PROVIDER ?? 'local') as 'local' | 's3',
@@ -74,8 +78,8 @@ export class AppConfig {
     }
 
     if (config.nodeEnv === 'production') {
-      if (!config.geminiApiKey.trim()) {
-        throw new Error('GEMINI_API_KEY is required in production.');
+      if (!config.geminiApiKey.trim() && !config.groqApiKey.trim()) {
+        throw new Error('Either GEMINI_API_KEY or GROQ_API_KEY is required in production.');
       }
       if (config.jwtSecret === 'hireflow_development_secret_key_2024_!@#' || !config.jwtSecret.trim()) {
         throw new Error('A secure JWT_SECRET is required in production.');

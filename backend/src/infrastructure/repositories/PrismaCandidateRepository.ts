@@ -22,7 +22,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
     const models = await this.prisma.candidate.findMany({
       where: { tenantId: organizationId },
     });
-    return models.map(this.mapToEntity);
+    return models.map(m => this.mapToEntity(m));
   }
 
   async save(candidate: Candidate): Promise<Candidate> {
@@ -33,11 +33,19 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       email: candidate.getEmail(),
       tenantId: candidate.getOrganizationId(),
       pipelineId: candidate.getPipelineId(),
+      currentStageId: candidate.getCurrentStageId() || null,
       status: candidate.getStatus().toUpperCase(),
       skills: candidate.getSkills(),
       yearsOfExperience: candidate.getYearsOfExperience(),
       education: candidate.getEducation() as any,
       projects: candidate.getProjects() as any,
+      jobId: candidate.getJobId() || null,
+      resumeUrl: candidate.getResumeUrl() || null,
+      phone: candidate.getPhone(),
+      summary: candidate.getSummary(),
+      stageHistory: candidate.getStageHistory() as any,
+      assignedRecruiterId: candidate.getAssignedRecruiterId() || null,
+      score: candidate.getScore(),
     };
 
     const saved = await this.prisma.candidate.upsert({
@@ -59,10 +67,15 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       yearsOfExperience: candidate.getYearsOfExperience(),
       education: candidate.getEducation() as any,
       projects: candidate.getProjects() as any,
+      phone: candidate.getPhone(),
+      summary: candidate.getSummary(),
+      stageHistory: candidate.getStageHistory() as any,
+      assignedRecruiterId: candidate.getAssignedRecruiterId() || null,
+      score: candidate.getScore(),
     };
 
     const updated = await this.prisma.candidate.update({
-      where: { id, tenantId: organizationId },
+      where: { id },
       data,
     });
 
@@ -71,7 +84,7 @@ export class PrismaCandidateRepository implements ICandidateRepository {
 
   async delete(id: string, organizationId: string): Promise<void> {
     await this.prisma.candidate.delete({
-      where: { id, tenantId: organizationId },
+      where: { id },
     });
   }
 
@@ -104,13 +117,13 @@ export class PrismaCandidateRepository implements ICandidateRepository {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.candidate.count({ where }),
     ]);
 
     return {
-      items: items.map(this.mapToEntity),
+      items: items.map(m => this.mapToEntity(m)),
       metadata: {
         total,
         page,
@@ -127,9 +140,13 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       id: model.id,
       name: `${model.firstName} ${model.lastName}`.trim(),
       email: model.email,
-      phone: '000-000-0000', 
+      phone: model.phone || '',
+      summary: model.summary || '',
       organizationId: model.tenantId,
       pipelineId: model.pipelineId,
+      currentStageId: model.currentStageId,
+      jobId: model.jobId,
+      resumeUrl: model.resumeUrl,
       resumeId: model.resumeUrl || 'NONE',
       skills: model.skills || [],
       yearsOfExperience: model.yearsOfExperience || 0,
@@ -137,6 +154,9 @@ export class PrismaCandidateRepository implements ICandidateRepository {
       projects: (model.projects as any) || [],
       status: model.status.toLowerCase() as CandidateStatus,
       createdAt: model.createdAt,
+      stageHistory: (model.stageHistory as any) || [],
+      assignedRecruiterId: model.assignedRecruiterId || undefined,
+      score: model.score || 0,
     });
   }
 }

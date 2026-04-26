@@ -4,13 +4,19 @@ import { ScorecardAggregator, ConsensusDrivenStrategy } from './patterns/evaluat
 
 export class EvaluationService {
     async submitFeedback(data: { tenantId: string; candidateId: string; stageId: string; interviewerId: string; scores: any; recommendation: string }) {
+        const candidate = await prisma.candidate.findUnique({ where: { id: data.candidateId } });
+        
         const evaluation = await prisma.evaluation.create({
             data: {
                 tenantId: data.tenantId,
                 candidateId: data.candidateId,
                 stageId: data.stageId,
                 interviewerId: data.interviewerId,
-                scores: data.scores,
+                jobId: candidate?.jobId || 'legacy-job',
+                skillMatchScore: data.scores?.skillMatchScore || 0,
+                experienceScore: data.scores?.experienceScore || 0,
+                projectRelevanceScore: data.scores?.projectRelevanceScore || 0,
+                overallScore: data.scores?.overallScore || 0,
                 recommendation: data.recommendation,
             },
             include: {
@@ -38,7 +44,7 @@ export class EvaluationService {
     async listEvaluationsForCandidate(tenantId: string, candidateId: string) {
         return prisma.evaluation.findMany({
             where: { tenantId, candidateId },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { evaluatedAt: 'desc' },
             include: {
                 interviewer: { select: { firstName: true, lastName: true, email: true } },
                 stage: { select: { name: true } },

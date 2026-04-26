@@ -34,6 +34,13 @@ export class ResumeFeedbackUseCase {
 
       const feedback = await this.aiService.generateResumeFeedback(resume);
 
+      // Update candidate score based on feedback
+      if (feedback.overallScore && (!candidate.getScore() || candidate.getScore() === 0)) {
+        candidate.setScore(feedback.overallScore);
+        await this.candidateRepository.save(candidate);
+        logger.info({ candidateId: input.candidateId, score: feedback.overallScore }, 'Updated candidate score from feedback');
+      }
+
       return {
         success: true,
         data: feedback,

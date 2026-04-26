@@ -19,7 +19,7 @@ export class AnalyticsController extends BaseController {
   async getDashboard(req: Request, res: Response, next: NextFunction) {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const data = await this.dashboardUseCase.execute(organizationId);
       return this.rawOk(res, data);
@@ -31,7 +31,7 @@ export class AnalyticsController extends BaseController {
   async getJobReport(req: Request, res: Response, next: NextFunction) {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
       const jobId = req.params.jobId as string;
 
       const data = await this.jobReportUseCase.execute(jobId, organizationId);
@@ -44,7 +44,7 @@ export class AnalyticsController extends BaseController {
   async getFunnel(req: Request, res: Response, next: NextFunction) {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
       const pipelineId = req.params.pipelineId as string;
 
       const data = await this.analyticsService.calculateConversionFunnel(pipelineId, organizationId);
@@ -57,7 +57,7 @@ export class AnalyticsController extends BaseController {
   async getSkillsReport(req: Request, res: Response, next: NextFunction) {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const data = await this.analyticsService.generateSkillsReport(organizationId);
       return this.rawOk(res, data);
@@ -69,7 +69,7 @@ export class AnalyticsController extends BaseController {
   async exportData(req: Request, res: Response, next: NextFunction) {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const csv = await this.exportUseCase.execute(organizationId, req.body);
       

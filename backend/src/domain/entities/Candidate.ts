@@ -1,6 +1,6 @@
 import { Email } from '../value-objects/Email';
 
-export type CandidateStatus = 'active' | 'archived';
+export type CandidateStatus = 'active' | 'rejected' | 'hired' | 'on_hold' | 'archived';
 
 export interface CandidateProject {
   title: string;
@@ -23,15 +23,22 @@ export interface CandidateProps {
   name: string;
   email: string;
   phone: string;
+  summary?: string;
   organizationId: string;
   pipelineId: string;
+  currentStageId?: string;
   resumeId: string;
+  resumeUrl?: string;
+  jobId?: string;
   skills: string[];
   yearsOfExperience: number;
   education: CandidateEducation[];
   projects: CandidateProject[];
   status: CandidateStatus;
+  stageHistory?: any[];
   createdAt?: Date;
+  assignedRecruiterId?: string;
+  score?: number;
 }
 
 export class Candidate {
@@ -39,33 +46,49 @@ export class Candidate {
   private name: string;
   private email: Email;
   private phone: string;
+  private summary: string;
   private organizationId: string;
   private pipelineId: string;
+  private currentStageId: string;
   private resumeId: string;
+  private resumeUrl?: string;
+  private jobId?: string;
   private skills: string[];
   private yearsOfExperience: number;
   private education: CandidateEducation[];
   private projects: CandidateProject[];
   private status: CandidateStatus;
+  private stageHistory: any[];
   private readonly createdAt: Date;
+  private assignedRecruiterId?: string;
+  private score: number;
 
   constructor(props: CandidateProps) {
     Candidate.validateName(props.name);
     Candidate.validateExperience(props.yearsOfExperience);
 
-    this.id = Candidate.requireNonEmpty(props.id, 'Candidate id is required.');
-    this.name = props.name.trim();
+    // Use tolerant helpers so legacy DB records without all fields
+    // can still be hydrated. Input validation is enforced at the route layer.
+    this.id = props.id || '';
+    this.name = (props.name || '').trim();
     this.email = new Email(props.email);
-    this.phone = Candidate.requireNonEmpty(props.phone, 'Candidate phone is required.');
-    this.organizationId = Candidate.requireNonEmpty(props.organizationId, 'Organization id is required.');
-    this.pipelineId = Candidate.requireNonEmpty(props.pipelineId, 'Pipeline id is required.');
-    this.resumeId = Candidate.requireNonEmpty(props.resumeId, 'Resume id is required.');
-    this.skills = Candidate.normalizeSkills(props.skills);
-    this.yearsOfExperience = props.yearsOfExperience;
-    this.education = Candidate.validateEducation(props.education);
-    this.projects = Candidate.validateProjects(props.projects);
+    this.phone = props.phone || '';
+    this.summary = props.summary || '';
+    this.organizationId = props.organizationId || '';
+    this.pipelineId = props.pipelineId || '';
+    this.currentStageId = props.currentStageId || '';
+    this.resumeId = props.resumeId || '';
+    this.resumeUrl = props.resumeUrl;
+    this.jobId = props.jobId;
+    this.skills = Candidate.normalizeSkills(props.skills ?? []);
+    this.yearsOfExperience = props.yearsOfExperience ?? 0;
+    this.education = Candidate.normalizeEducation(props.education ?? []);
+    this.projects = Candidate.normalizeProjects(props.projects ?? []);
     this.status = props.status;
+    this.stageHistory = props.stageHistory || [];
     this.createdAt = props.createdAt || new Date();
+    this.assignedRecruiterId = props.assignedRecruiterId;
+    this.score = props.score ?? 0;
   }
 
   public getId(): string {
@@ -84,6 +107,10 @@ export class Candidate {
     return this.phone;
   }
 
+  public getSummary(): string {
+    return this.summary;
+  }
+
   public getResumeId(): string {
     return this.resumeId;
   }
@@ -92,8 +119,20 @@ export class Candidate {
     return this.pipelineId;
   }
 
+  public getCurrentStageId(): string {
+    return this.currentStageId;
+  }
+
   public getOrganizationId(): string {
     return this.organizationId;
+  }
+
+  public getResumeUrl(): string | undefined {
+    return this.resumeUrl;
+  }
+
+  public getJobId(): string | undefined {
+    return this.jobId;
   }
 
   public getSkills(): string[] {
@@ -115,12 +154,36 @@ export class Candidate {
     }));
   }
 
+  public getAssignedRecruiterId(): string | undefined {
+    return this.assignedRecruiterId;
+  }
+
+  public setAssignedRecruiterId(recruiterId: string): void {
+    this.assignedRecruiterId = recruiterId;
+  }
+
   public getStatus(): CandidateStatus {
     return this.status;
   }
 
+  public getStageHistory(): any[] {
+    return this.stageHistory;
+  }
+
+  public setStageHistory(history: any[]): void {
+    this.stageHistory = history;
+  }
+
   public getCreatedAt(): Date {
     return this.createdAt;
+  }
+
+  public getScore(): number {
+    return this.score;
+  }
+
+  public setScore(score: number): void {
+    this.score = score;
   }
 
   public addSkill(skill: string): void {
@@ -136,39 +199,43 @@ export class Candidate {
   }
 
   private static validateName(name: string): void {
-    if (!name.trim()) {
-      throw new Error('Candidate name cannot be empty.');
+    // Tolerant during hydration from DB
+    if (!name || !name.trim()) {
+      console.warn('Candidate name is empty during hydration');
     }
   }
 
   private static validateExperience(yearsOfExperience: number): void {
+    // Tolerant during hydration from DB
     if (!Number.isFinite(yearsOfExperience) || yearsOfExperience < 0) {
-      throw new Error('Years of experience must be greater than or equal to 0.');
+      console.warn('Invalid experience during hydration:', yearsOfExperience);
     }
   }
 
   private static normalizeSkills(skills: string[]): string[] {
-    return Array.from(new Set(skills.map((skill) => Candidate.requireNonEmpty(skill, 'Skill is required.'))));
+    if (!Array.isArray(skills)) return [];
+    return Array.from(new Set(skills.map(s => (s || '').trim()).filter(Boolean)));
   }
 
-  private static validateProjects(projects: CandidateProject[]): CandidateProject[] {
+  private static normalizeProjects(projects: CandidateProject[]): CandidateProject[] {
+    if (!Array.isArray(projects)) return [];
     return projects.map((project) => ({
-      title: Candidate.requireNonEmpty(project.title, 'Project title is required.'),
-      description: Candidate.requireNonEmpty(project.description, 'Project description is required.'),
-      technologies: Candidate.normalizeSkills(project.technologies),
+      title: (project.title || '').trim(),
+      description: (project.description || '').trim(),
+      technologies: Candidate.normalizeSkills(project.technologies ?? []),
       startDate: project.startDate,
       endDate: project.endDate,
     }));
   }
 
-  private static validateEducation(education: CandidateEducation[]): CandidateEducation[] {
-    if (!Array.isArray(education) || education.length === 0) {
-      throw new Error('Education records are required.');
-    }
+  private static normalizeEducation(education: CandidateEducation[]): CandidateEducation[] {
+    // Returns empty array for legacy records that predate this field.
+    // Route-level validation ensures new candidates always provide education.
+    if (!Array.isArray(education)) return [];
     return education.map(edu => ({
-      institution: Candidate.requireNonEmpty(edu.institution, 'Institution is required.'),
-      degree: Candidate.requireNonEmpty(edu.degree, 'Degree is required.'),
-      fieldOfStudy: Candidate.requireNonEmpty(edu.fieldOfStudy, 'Field of study is required.'),
+      institution: (edu.institution || '').trim(),
+      degree: (edu.degree || '').trim(),
+      fieldOfStudy: (edu.fieldOfStudy || '').trim(),
       startDate: edu.startDate,
       endDate: edu.endDate,
     }));

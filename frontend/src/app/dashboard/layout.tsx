@@ -24,21 +24,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <div className="flex h-screen w-full bg-background overflow-hidden relative">
-            <MobileNav />
-
             {/* Static sidebar for desktop */}
             <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col border-r border-border">
                 <Sidebar />
             </div>
 
             {/* Main Content Area */}
-            <div className="lg:pl-72 flex flex-col flex-1 h-full overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden lg:pl-72">
+                <MobileNav />
+                
                 <div className="hidden lg:block">
                     <Header />
                 </div>
 
                 <main className="flex-1 overflow-y-auto w-full bg-background">
-                    <div className="px-4 py-8 sm:px-6 lg:px-8 mx-auto max-w-7xl h-full animate-in fade-in duration-700">
+                    <div className="px-4 py-8 sm:px-6 lg:px-8 mx-auto max-w-7xl h-full animate-in fade-in duration-700 pb-24 lg:pb-8">
                         {children}
                     </div>
                 </main>

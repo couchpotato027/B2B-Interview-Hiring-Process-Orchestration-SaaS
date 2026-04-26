@@ -24,6 +24,8 @@ import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUse
 import { LoginUseCase } from '../../application/use-cases/LoginUseCase';
 import { RefreshTokenUseCase } from '../../application/use-cases/RefreshTokenUseCase';
 import { ChangePasswordUseCase } from '../../application/use-cases/ChangePasswordUseCase';
+import { ScheduleInterviewUseCase } from '../../application/use-cases/ScheduleInterviewUseCase';
+import { SubmitFeedbackUseCase } from '../../application/use-cases/SubmitFeedbackUseCase';
 
 // File Storage Use Cases
 import { UploadResumeFileUseCase } from '../../application/use-cases/UploadResumeFileUseCase';
@@ -46,21 +48,25 @@ import { ObserverRegistry } from '../observers/ObserverRegistry';
 import { PrismaCandidateRepository } from '../repositories/PrismaCandidateRepository';
 import { PrismaJobRepository } from '../repositories/PrismaJobRepository';
 import { PrismaUserRepository } from '../repositories/PrismaUserRepository';
-import { InMemoryEvaluationRepository } from '../repositories/InMemoryEvaluationRepository';
+import { PrismaEvaluationRepository } from '../repositories/PrismaEvaluationRepository';
 import { InMemoryResumeRepository } from '../repositories/InMemoryResumeRepository';
 import { PrismaPipelineRepository } from '../repositories/PrismaPipelineRepository';
+import { PrismaInterviewRepository } from '../repositories/PrismaInterviewRepository';
 import { PrismaCandidatePipelineStatusRepository } from '../repositories/PrismaCandidatePipelineStatusRepository';
 import { prisma } from '../database/prisma.client';
 import { InMemoryFileRepository } from '../repositories/InMemoryFileRepository';
 import { InMemorySavedSearchRepository } from '../repositories/InMemorySavedSearchRepository';
 
 import { GeminiAIService } from '../services/GeminiAIService';
+import { GroqAIService } from '../services/GroqAIService';
 import { NoopAIService } from '../services/NoopAIService';
+import { ResumeParserFactory } from '../parsers/ResumeParserFactory';
 import { ScheduledAnalyticsService } from '../jobs/ScheduledAnalyticsService';
 import { LocalFileStorage } from '../storage/LocalFileStorage';
 import { S3FileStorage } from '../storage/S3FileStorage';
 import { FileProcessorWorker } from '../workers/FileProcessorWorker';
 import { CleanupOrphanedFilesJob } from '../jobs/CleanupOrphanedFilesJob';
+import { MockCalendarService } from '../services/MockCalendarService';
 import { InMemorySearchService } from '../search/InMemorySearchService';
 
 import { env } from '../config/env';
@@ -75,12 +81,15 @@ export const setupContainer = (): Container => {
   container.register('CandidateRepository', () => new PrismaCandidateRepository());
   container.register('JobRepository', () => new PrismaJobRepository());
   container.register('ResumeRepository', () => new InMemoryResumeRepository());
-  container.register('EvaluationRepository', () => new InMemoryEvaluationRepository());
+  container.register('EvaluationRepository', () => new PrismaEvaluationRepository());
   container.register('PipelineRepository', () => new PrismaPipelineRepository());
   container.register('CandidatePipelineStatusRepository', () => new PrismaCandidatePipelineStatusRepository());
   container.register('UserRepository', () => new PrismaUserRepository());
+  container.register('InterviewRepository', () => new PrismaInterviewRepository());
   container.register('FileRepository', () => new InMemoryFileRepository());
   container.register('SavedSearchRepository', () => new InMemorySavedSearchRepository());
+  container.register('CalendarService', () => new MockCalendarService());
+
 
   container.register('AuthService', () => new AuthService(env.jwtSecret));
   container.register('SearchService', () => new InMemorySearchService());
@@ -98,10 +107,23 @@ export const setupContainer = (): Container => {
     return new LocalFileStorage(env.uploadDir, `${env.baseUrl}/uploads`);
   });
 
-  container.register('AIService', () =>
-    env.geminiApiKey ? new GeminiAIService() : new NoopAIService(),
-  );
-  container.register('ResumeParsingService', () => new ResumeParsingService());
+  // AI Service: Prefer Groq (free) > Gemini > Noop
+  container.register('AIService', () => {
+    if (env.groqApiKey) {
+      console.log('🤖 AI Provider: Groq (LLaMA)');
+      return new GroqAIService(env.groqApiKey, env.groqModel);
+    }
+    if (env.geminiApiKey) {
+      console.log('🤖 AI Provider: Gemini');
+      return new GeminiAIService();
+    }
+    console.log('🤖 AI Provider: Noop (no API key configured)');
+    return new NoopAIService();
+  });
+  container.register('ResumeParsingService', () => new ResumeParsingService(
+    new ResumeParserFactory(),
+    container.resolve('AIService')
+  ));
   
   container.register('AnalyticsService', () => new AnalyticsService(
     container.resolve('CandidateRepository'),
@@ -140,11 +162,15 @@ export const setupContainer = (): Container => {
     () =>
       new ProcessResumeUseCase({
         candidateRepository: container.resolve('CandidateRepository'),
-        resumeRepository: container.resolve('ResumeRepository'),
-        aiService: container.resolve<IAIService>('AIService'),
+        jobRepository: container.resolve('JobRepository'),
+        pipelineRepository: container.resolve('PipelineRepository'),
         resumeParsingService: container.resolve('ResumeParsingService'),
-        eventEmitter: container.resolve('EventEmitter'),
       }),
+  );
+
+  container.register(
+    'GetPipelinesUseCase',
+    () => new (require('../../application/use-cases/GetPipelinesUseCase').GetPipelinesUseCase)()
   );
 
   container.register(
@@ -155,13 +181,12 @@ export const setupContainer = (): Container => {
   container.register(
     'EvaluateCandidateUseCase',
     () =>
-      new EvaluateCandidateUseCase({
-        candidateRepository: container.resolve('CandidateRepository'),
-        jobRepository: container.resolve('JobRepository'),
-        evaluationRepository: container.resolve('EvaluationRepository'),
-        aiService: container.resolve<IAIService>('AIService'),
-        eventEmitter: container.resolve('EventEmitter'),
-      }),
+      new EvaluateCandidateUseCase(
+        container.resolve('CandidateRepository'),
+        container.resolve('JobRepository'),
+        container.resolve('EvaluationRepository'),
+        container.resolve<IAIService>('AIService'),
+      ),
   );
 
   container.register(
@@ -334,6 +359,26 @@ export const setupContainer = (): Container => {
         container.resolve('MoveCandidateThroughPipelineUseCase')
     )
   );
+
+  container.register(
+    'ScheduleInterviewUseCase',
+    () => new ScheduleInterviewUseCase(
+        container.resolve('InterviewRepository'),
+        container.resolve('CandidateRepository'),
+        container.resolve('UserRepository'),
+        container.resolve('CalendarService'),
+        container.resolve('EventEmitter')
+    )
+  );
+
+  container.register(
+    'SubmitFeedbackUseCase',
+    () => new SubmitFeedbackUseCase(
+        container.resolve('InterviewRepository'),
+        container.resolve('EventEmitter')
+    )
+  );
+
 
   // Auth Use Cases
   container.register(

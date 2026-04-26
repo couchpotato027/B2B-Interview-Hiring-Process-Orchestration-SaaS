@@ -2,12 +2,13 @@ import { PrismaClient } from '@prisma/client';
 import { IPipelineRepository } from '../../domain/repositories/IPipelineRepository';
 import { Pipeline } from '../../domain/entities/Pipeline';
 import { PipelineStage } from '../../domain/entities/PipelineStage';
+import { prisma } from '../database/prisma.client';
 
 export class PrismaPipelineRepository implements IPipelineRepository {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
   }
 
   async save(pipeline: Pipeline): Promise<void> {
@@ -75,7 +76,7 @@ export class PrismaPipelineRepository implements IPipelineRepository {
       include: { stages: true },
     });
 
-    return models.map(this.mapToEntity);
+    return models.map(m => this.mapToEntity(m));
   }
 
   async delete(id: string): Promise<void> {

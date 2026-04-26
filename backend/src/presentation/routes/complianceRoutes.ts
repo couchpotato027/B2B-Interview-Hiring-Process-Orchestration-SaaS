@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import { ComplianceController } from '../controllers/ComplianceController';
 
+import { authMiddleware } from '../../infrastructure/middleware/AuthMiddleware';
+
 const complianceRouter = Router();
 const controller = new ComplianceController();
+
+complianceRouter.use(authMiddleware);
 
 /**
  * @openapi

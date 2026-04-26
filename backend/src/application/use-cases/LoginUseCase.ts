@@ -19,16 +19,27 @@ export class LoginUseCase {
   ) {}
 
   public async execute(request: LoginRequest): Promise<LoginResponse> {
-    // DEMO BYPASS: Always log in as the primary admin for tomorrow's evaluation
-    let user = await this.userRepository.findByEmail('admin@hireflow.com');
-    
-    if (!user) {
-        // Fallback: If admin is missing, try the requested email
-        user = await this.userRepository.findByEmail(request.email);
+    const { email, password } = request;
+
+    if (!email || !password) {
+      throw new Error('Email and password are required.');
     }
 
+    // Find user by the actual requested email
+    const user = await this.userRepository.findByEmail(email);
+
     if (!user) {
-        throw new Error('Demo Error: Admin user not found in database. Please seed the database.');
+      throw new Error('Invalid email or password.');
+    }
+
+    if (!user.getIsActive()) {
+      throw new Error('Your account has been deactivated. Please contact your administrator.');
+    }
+
+    // Validate password
+    const isPasswordValid = await user.validatePassword(password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid email or password.');
     }
 
     const token = this.authService.generateToken(user);

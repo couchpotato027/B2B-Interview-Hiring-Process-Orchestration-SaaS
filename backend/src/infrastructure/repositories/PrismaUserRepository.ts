@@ -23,14 +23,18 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const userModel = await this.prisma.user.findFirst({
+    // Find all users with this email and prefer the default-tenant user
+    const userModels = await this.prisma.user.findMany({
       where: { email },
       include: { role: true },
+      orderBy: { createdAt: 'desc' },
     });
 
-    if (!userModel) return null;
+    if (userModels.length === 0) return null;
 
-    return this.mapToEntity(userModel);
+    // Prefer users in 'default-tenant' over other tenants
+    const preferred = userModels.find(u => u.tenantId === 'default-tenant') || userModels[0];
+    return this.mapToEntity(preferred);
   }
 
   async save(user: User): Promise<void> {
@@ -71,7 +75,7 @@ export class PrismaUserRepository implements IUserRepository {
     const userModels = await this.prisma.user.findMany({
       include: { role: true },
     });
-    return userModels.map(this.mapToEntity);
+    return userModels.map(m => this.mapToEntity(m));
   }
 
   async delete(id: string): Promise<void> {

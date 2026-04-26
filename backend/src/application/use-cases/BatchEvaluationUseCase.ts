@@ -32,7 +32,12 @@ export class BatchEvaluationUseCase {
     evaluationRepository: IEvaluationRepository;
     aiService: IAIService;
   }) {
-    this.evaluateCandidateUseCase = new EvaluateCandidateUseCase(dependencies);
+    this.evaluateCandidateUseCase = new EvaluateCandidateUseCase(
+      dependencies.candidateRepository,
+      dependencies.jobRepository,
+      dependencies.evaluationRepository,
+      dependencies.aiService
+    );
   }
 
   public async execute(input: BatchEvaluationInput): Promise<Result<BatchEvaluationOutput>> {

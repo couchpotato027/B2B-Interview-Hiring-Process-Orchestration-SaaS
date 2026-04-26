@@ -22,7 +22,7 @@ export class PipelineController extends BaseController {
   async listPipelines(req: Request, res: Response, next: NextFunction) {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const pipelines = await this.getPipelinesUseCase.execute(organizationId);
       return this.rawOk(res, pipelines);
@@ -34,7 +34,7 @@ export class PipelineController extends BaseController {
   async createPipeline(req: Request, res: Response, next: NextFunction) {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const pipeline = await this.createPipelineUseCase.execute({
         ...req.body,
@@ -50,7 +50,7 @@ export class PipelineController extends BaseController {
     try {
       const { id } = req.params;
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const boardData = await this.getPipelineBoardUseCase.execute(id as string, organizationId);
       
@@ -63,13 +63,15 @@ export class PipelineController extends BaseController {
       const candidates = boardData.stages.flatMap(s => 
         s.candidates.map(c => {
           const nameParts = c.name.split(' ');
-          return {
-            id: c.id,
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            email: c.email,
-            currentStageId: s.stageId
-          };
+            return {
+              id: c.id,
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
+              email: c.email,
+              currentStageId: s.stageId,
+              score: c.score,
+              assignedRecruiter: c.assignedRecruiter
+            };
         })
       );
 
@@ -89,7 +91,7 @@ export class PipelineController extends BaseController {
       const { id } = req.params; // candidateId
       const { pipelineId, newStageId, reason, notes } = req.body;
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
       const movedBy = authReq.user?.email || 'admin@hireflow.com';
 
       const status = await this.moveCandidateUseCase.execute({
@@ -112,19 +114,38 @@ export class PipelineController extends BaseController {
     try {
       const { candidateIds, pipelineId, newStageId, reason } = req.body;
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
       const movedBy = authReq.user?.email || 'admin@hireflow.com';
 
-      const result = await this.bulkMoveUseCase.execute({
+      const results = await this.bulkMoveUseCase.execute({
         candidateIds,
         pipelineId,
         newStageId,
         organizationId,
         movedBy,
-        reason,
+        reason
       });
 
-      return this.rawOk(res, result);
+      return this.rawOk(res, results);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async getStages(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
+
+      const boardData = await this.getPipelineBoardUseCase.execute(id as string, organizationId);
+      const stages = boardData.stages.map(s => ({
+        id: s.stageId,
+        name: s.stageName,
+        order: s.orderIndex
+      }));
+
+      return this.rawOk(res, stages);
     } catch (error) {
       return next(error);
     }

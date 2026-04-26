@@ -11,6 +11,7 @@ export interface CreateJobInput {
   preferredSkills: string[];
   requiredExperience: number;
   organizationId: string;
+  pipelineTemplateId?: string;
 }
 
 export class CreateJobUseCase {
@@ -27,6 +28,7 @@ export class CreateJobUseCase {
         preferredSkills: input.preferredSkills,
         requiredExperience: input.requiredExperience,
         organizationId: input.organizationId,
+        pipelineTemplateId: input.pipelineTemplateId,
         status: 'open',
       });
 

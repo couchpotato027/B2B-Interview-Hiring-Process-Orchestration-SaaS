@@ -15,9 +15,12 @@ export interface EvaluationProps {
   projectRelevanceScore: number;
   educationScore?: number;
   culturalFitScore?: number;
+  overallScore: number;
   strengths: string[];
   weaknesses: string[];
+  missingSkills: string[];
   recommendation: EvaluationRecommendation;
+  summary: string;
   organizationId: string;
   evaluatedAt: Date;
 }
@@ -38,7 +41,9 @@ export class Evaluation {
   private overallScore: Score;
   private strengths: string[];
   private weaknesses: string[];
+  private missingSkills: string[];
   private recommendation: EvaluationRecommendation;
+  private summary: string;
   private readonly organizationId: string;
   private readonly evaluatedAt: Date;
 
@@ -52,12 +57,13 @@ export class Evaluation {
     this.projectRelevanceScore = new Score(props.projectRelevanceScore);
     this.educationScore = new Score(props.educationScore || 0);
     this.culturalFitScore = new Score(props.culturalFitScore || 0);
-    this.strengths = Evaluation.normalizeNotes(props.strengths);
-    this.weaknesses = Evaluation.normalizeNotes(props.weaknesses);
+    this.overallScore = new Score(props.overallScore);
+    this.strengths = props.strengths || [];
+    this.weaknesses = props.weaknesses || [];
+    this.missingSkills = props.missingSkills || [];
     this.recommendation = props.recommendation;
+    this.summary = props.summary || '';
     this.evaluatedAt = Evaluation.validateDate(props.evaluatedAt);
-    this.overallScore = new Score(0);
-    this.calculateOverallScore();
   }
 
   public getId(): string {
@@ -108,8 +114,16 @@ export class Evaluation {
     return [...this.weaknesses];
   }
 
+  public getMissingSkills(): string[] {
+    return [...this.missingSkills];
+  }
+
   public getRecommendation(): EvaluationRecommendation {
     return this.recommendation;
+  }
+
+  public getSummary(): string {
+    return this.summary;
   }
 
   public getEvaluatedAt(): Date {

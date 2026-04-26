@@ -10,10 +10,12 @@ export interface ParsedResumeData {
   name?: string;
   email?: string;
   phone?: string;
+  summary?: string;
   skills?: string[];
   experience?: string;
   education?: string;
   projects?: ParsedResumeProject[];
+  score?: number;
 }
 
 export interface ResumeProps {
@@ -111,28 +113,25 @@ export class Resume {
   }
 
   private static validateParsedData(data: ParsedResumeData): ParsedResumeData {
-    if (data.email !== undefined) {
-      new Email(data.email);
-    }
-
-    if (data.phone !== undefined && !data.phone.trim()) {
-      throw new Error('Parsed phone cannot be empty.');
-    }
-
-    if (data.experience !== undefined && !data.experience.trim()) {
-      throw new Error('Parsed experience cannot be empty.');
+    if (data.email !== undefined && data.email.trim()) {
+      try {
+        new Email(data.email);
+      } catch {
+        // Invalid email from parser — clear it rather than crashing
+        data = { ...data, email: undefined };
+      }
     }
 
     return Resume.cloneParsedData({
       ...data,
       name: data.name?.trim(),
-      phone: data.phone?.trim(),
-      experience: data.experience?.trim(),
+      phone: data.phone?.trim() || undefined,
+      experience: data.experience?.trim() || undefined,
       education: data.education?.trim(),
       skills: data.skills ? Resume.normalizeSkills(data.skills) : undefined,
       projects: data.projects?.map((project) => ({
-        title: Resume.requireNonEmpty(project.title, 'Project title is required.'),
-        description: Resume.requireNonEmpty(project.description, 'Project description is required.'),
+        title: (project.title || 'Untitled Project').trim(),
+        description: (project.description || 'No description provided').trim(),
         technologies: project.technologies ? Resume.normalizeSkills(project.technologies) : [],
       })),
     });
@@ -150,7 +149,7 @@ export class Resume {
   }
 
   private static normalizeSkills(skills: string[]): string[] {
-    return [...new Set(skills.map((skill) => Resume.requireNonEmpty(skill, 'Skill is required.')))];
+    return [...new Set(skills.map((s) => (s || '').trim()).filter(Boolean))];
   }
 
   private static validateDate(value: Date, message: string): Date {

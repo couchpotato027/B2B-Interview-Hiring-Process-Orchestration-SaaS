@@ -26,7 +26,7 @@ const fileFilter: multer.Options['fileFilter'] = (_req, file, callback) => {
 export const uploadResumeMiddleware = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 10 * 1024 * 1024,
   },
   fileFilter,
 });

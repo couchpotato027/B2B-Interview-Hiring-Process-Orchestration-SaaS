@@ -13,7 +13,7 @@ import { ExportDialog } from '@/components/shared/ExportDialog';
 import { ImportWizard } from '@/components/shared/ImportWizard';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-interface CandidateItem {
+interface CandidateRecord {
     id: string;
     firstName: string;
     lastName: string;
@@ -22,6 +22,7 @@ interface CandidateItem {
     createdAt: string;
     currentStage: { id: string; name: string } | null;
     pipeline: { id: string; name: string; roleType: string } | null;
+    assignedRecruiter: { id: string; firstName: string; lastName: string } | null;
 }
 
 interface PipelineItem {
@@ -57,7 +58,7 @@ function useDebounce<T>(value: T, delay: number): T {
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function CandidatesPage() {
     const { t } = useTranslation();
-    const [candidates, setCandidates] = useState<CandidateItem[]>([]);
+    const [candidates, setCandidates] = useState<CandidateRecord[]>([]);
     const [total, setTotal] = useState(0);
     const [pipelines, setPipelines] = useState<PipelineItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -148,8 +149,8 @@ export default function CandidatesPage() {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="sm:flex sm:items-center sm:justify-between">
+        <div className="space-y-6 animate-in fade-in duration-500 pb-32 pt-6">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight">
                         {t('candidates.title')}
@@ -167,29 +168,31 @@ export default function CandidatesPage() {
                         )}
                     </p>
                 </div>
-                <div className="mt-4 flex sm:ml-4 sm:mt-0 gap-3">
+                
+                {/* Header Actions - Improved horizontal scrolling for mobile */}
+                <div className="flex items-center gap-3 overflow-x-auto pb-4 -mx-1 px-1 no-scrollbar sm:overflow-visible sm:pb-0 sm:mx-0 sm:px-0">
                     <button
                         onClick={() => setShowFilters(f => !f)}
-                        className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ring-1 ${showFilters ? 'bg-[#0a0f1a] text-white ring-[#0a0f1a]' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
+                        className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ring-1 flex-shrink-0 ${showFilters ? 'bg-[#0a0f1a] text-white ring-[#0a0f1a]' : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'}`}
                     >
                         <SlidersHorizontal className="h-4 w-4" />
                         {t('common.filters')} {activeChips.length > 0 && <span className="h-5 w-5 rounded-full bg-[#c8ff00] text-[#0a0f1a] text-xs font-bold flex items-center justify-center">{activeChips.length}</span>}
                     </button>
                     <button
                         onClick={() => setShowImport(true)}
-                        className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors"
+                        className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors flex-shrink-0"
                     >
                         Import
                     </button>
                     <button
                         onClick={() => setShowExport(true)}
-                        className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors"
+                        className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors flex-shrink-0"
                     >
                         Export
                     </button>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="inline-flex items-center gap-x-2 rounded-full bg-[#0a0f1a] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors"
+                        className="inline-flex items-center gap-x-2 rounded-full bg-[#0a0f1a] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors flex-shrink-0"
                     >
                         <Plus className="-ml-0.5 h-4 w-4 text-[#c8ff00]" /> {t('candidates.add')}
                     </button>
@@ -271,24 +274,30 @@ export default function CandidatesPage() {
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-full bg-slate-900 flex items-center justify-center font-bold text-white text-sm">{person.firstName[0]}{person.lastName[0]}</div>
+                                    <div className="h-12 w-12 rounded-full bg-slate-900 flex items-center justify-center font-bold text-white text-sm">
+                                        {(person.firstName?.charAt(0) || '')}{(person.lastName?.charAt(0) || '')}
+                                    </div>
                                     <div>
                                         <h4 className="font-black text-slate-900 dark:text-white leading-tight">{person.firstName} {person.lastName}</h4>
                                         <p className="text-xs text-slate-400 font-medium">{person.email}</p>
                                     </div>
                                 </div>
-                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ring-1 ring-inset ${STATUS_COLORS[person.status]}`}>
+                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ring-1 ring-inset ${STATUS_COLORS[person.status?.toUpperCase()] || 'bg-slate-100 text-slate-600'}`}>
                                     {person.status}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800/50">
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pipeline</span>
-                                    <span className="text-xs font-bold text-slate-700 dark:text-white">{person.pipeline?.name}</span>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stage</span>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-white">
+                                        {person.currentStage?.name || 'New Lead'}
+                                    </span>
                                 </div>
                                 <div className="flex flex-col gap-1 text-right">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stage</span>
-                                    <span className="text-xs font-bold text-slate-700 dark:text-white">{person.currentStage?.name}</span>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned To</span>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-white">
+                                        {person.assignedRecruiter ? `${person.assignedRecruiter.firstName} ${person.assignedRecruiter.lastName.charAt(0)}.` : 'Unassigned'}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -337,7 +346,9 @@ export default function CandidatesPage() {
                                             </td>
                                             <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm cursor-pointer" onClick={() => setSelectedCandidateId(person.id)}>
                                                 <div className="flex items-center gap-4">
-                                                    <div className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center font-bold text-white text-xs">{person.firstName[0]}{person.lastName[0]}</div>
+                                                    <div className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center font-bold text-white text-xs">
+                                                        {(person.firstName?.charAt(0) || '')}{(person.lastName?.charAt(0) || '')}
+                                                    </div>
                                                     <div>
                                                         <div className="font-bold text-slate-900">{person.firstName} {person.lastName}</div>
                                                         <div className="text-xs text-slate-500">{person.email}</div>
@@ -347,7 +358,9 @@ export default function CandidatesPage() {
                                             <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-slate-900">{person.pipeline?.name || '—'}</td>
                                             <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-slate-900">{person.currentStage?.name || '—'}</td>
                                             <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${STATUS_COLORS[person.status]}`}>{person.status}</span>
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${STATUS_COLORS[person.status?.toUpperCase()] || 'bg-slate-100 text-slate-600'}`}>
+                                                    {person.status}
+                                                </span>
                                             </td>
                                             <td className="whitespace-nowrap px-3 py-4 text-xs text-slate-500">{new Date(person.createdAt).toLocaleDateString()}</td>
                                             <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm sm:pr-6">
@@ -371,7 +384,13 @@ export default function CandidatesPage() {
                 </div>
             </div>
 
-            <CandidateDetailDrawer candidateId={selectedCandidateId} onClose={() => setSelectedCandidateId(null)} onUpdate={load} />
+            <CandidateDetailDrawer 
+                candidateId={selectedCandidateId} 
+                isOpen={!!selectedCandidateId}
+                onClose={() => setSelectedCandidateId(null)} 
+                onUpdate={load} 
+                availableStages={pipelines.flatMap(p => p.stages).map(s => ({ id: s.id, name: s.name }))}
+            />
 
             <ExportDialog 
                 isOpen={showExport} 
@@ -398,7 +417,9 @@ export default function CandidatesPage() {
                                 onUploadComplete={(data) => {
                                     load();
                                     // Optionally select the newly created candidate
-                                    if(data && data.id) setSelectedCandidateId(data.id);
+                                    if(data?.candidate?.id) setSelectedCandidateId(data.candidate.id);
+                                    else if(data?.id) setSelectedCandidateId(data.id);
+                                    setShowAddModal(false); // Close the modal so they can actually see the list/drawer
                                 }} 
                             />
                         </div>

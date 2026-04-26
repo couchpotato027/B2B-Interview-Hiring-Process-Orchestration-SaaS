@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { UploadCloud, FileText, CheckCircle2, XCircle, X, Loader2, FileIcon } from 'lucide-react';
 import axios, { CancelTokenSource } from 'axios';
 import { toast } from 'react-hot-toast';
+import { API_BASE_URL } from '@/lib/api';
 
 interface UploadedFile {
   id: string;
@@ -19,7 +20,7 @@ interface UploadedFile {
   candidateData?: any;
 }
 
-export function ResumeUploadZone({ onUploadComplete }: { onUploadComplete?: (data: any) => void }) {
+export function ResumeUploadZone({ onUploadComplete, jobId }: { onUploadComplete?: (data: any) => void, jobId?: string }) {
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
 
@@ -35,12 +36,13 @@ export function ResumeUploadZone({ onUploadComplete }: { onUploadComplete?: (dat
     updateStatus('uploading', { cancelSource: source });
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('resume', file);
+    if (jobId) formData.append('jobId', jobId);
 
     const startTime = Date.now();
 
     try {
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/candidates/upload`, formData, {
+      const res = await axios.post(`${API_BASE_URL}/candidates/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: `Bearer ${token}` } : {})

@@ -12,6 +12,8 @@ import { wsService } from '../integration/websocket';
 import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
 import { prisma } from '../../infrastructure/database/prisma.client';
 import { addEmailToQueue } from '../../infrastructure/queues/EmailQueue';
+import { auditService } from '../../application/services/AuditService';
+import { UploadResumeFileUseCase } from '../../application/use-cases/UploadResumeFileUseCase';
 
 export class CandidateController extends BaseController {
   private get processResumeUseCase() {
@@ -38,7 +40,7 @@ export class CandidateController extends BaseController {
   public createCandidate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { firstName, lastName, email, pipelineId, initialStageId, jobId, resumeUrl } = req.body;
 
       if (!firstName || !lastName || !email || !pipelineId || !initialStageId) {
@@ -56,9 +58,9 @@ export class CandidateController extends BaseController {
       wsService.emit(tenantId, 'candidate:created', { candidateId: candidate.id, name: `${candidate.firstName} ${candidate.lastName}`, jobId: candidate.jobId, createdBy });
       
       if (createdBy) {
-        await prisma.notification.create({
+        prisma.notification.create({
           data: { tenantId, userId: createdBy, type: 'CANDIDATE_CREATED', title: 'New Candidate', message: `${candidate.firstName} ${candidate.lastName} applied.` }
-        });
+        }).catch(err => console.warn('Failed to create notification:', err.message));
       }
       
       // Auto-send application received email
@@ -81,7 +83,7 @@ export class CandidateController extends BaseController {
   public updateCandidate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { id } = req.params;
       const { firstName, lastName, email, resumeUrl } = req.body;
 
@@ -104,7 +106,7 @@ export class CandidateController extends BaseController {
   public deleteCandidate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { id } = req.params;
 
       const candidate = await prisma.candidate.findFirst({ where: { id, tenantId } });
@@ -121,7 +123,7 @@ export class CandidateController extends BaseController {
   public getCandidates = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
 
       const search = (req.query.search as string) || (req.query.q as string) || '';
       const status = req.query.status as string;
@@ -167,22 +169,29 @@ export class CandidateController extends BaseController {
       };
       const orderBy = allowedSorts[sort] || { createdAt: 'desc' };
 
-      const [candidates, total] = await Promise.all([
-        prisma.candidate.findMany({
-          where,
-          orderBy,
-          include: {
-            currentStage: { select: { id: true, name: true, orderIndex: true } },
-            pipeline: { select: { id: true, name: true, roleType: true } },
-            job: { select: { id: true, title: true } },
-            _count: { select: { evaluations: true } },
-          },
-        }),
-        prisma.candidate.count({ where }),
-      ]);
+      const candidates = await prisma.candidate.findMany({
+        where,
+        orderBy,
+        include: {
+          currentStage: { select: { id: true, name: true, orderIndex: true } },
+          pipeline: { select: { id: true, name: true, roleType: true } },
+          job: { select: { id: true, title: true } },
+          assignedRecruiter: { select: { id: true, firstName: true, lastName: true } },
+          _count: { select: { evaluations: true } },
+        },
+      });
+      const total = await prisma.candidate.count({ where });
 
-      return res.status(200).json({ items: candidates, total, filtered: candidates.length });
+      console.log(`[CANDIDATE_LIST] Tenant: ${tenantId}, Count: ${candidates.length}, Total: ${total}`);
+      
+      return res.status(200).json({ 
+        items: candidates, 
+        total, 
+        limit: candidates.length,
+        offset: 0 
+      });
     } catch (error) {
+      console.error('[CANDIDATE_LIST_ERROR]', error);
       return next(error);
     }
   };
@@ -191,7 +200,7 @@ export class CandidateController extends BaseController {
   public getCandidateById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { id } = req.params;
 
       const candidate = await prisma.candidate.findFirst({
@@ -200,13 +209,6 @@ export class CandidateController extends BaseController {
           currentStage: true,
           pipeline: { include: { stages: { orderBy: { orderIndex: 'asc' } } } },
           job: { select: { id: true, title: true, department: true } },
-          evaluations: {
-            include: {
-              interviewer: { select: { firstName: true, lastName: true, email: true } },
-              stage: { select: { name: true } },
-            },
-            orderBy: { createdAt: 'desc' },
-          },
           interviews: {
             include: {
               interviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -229,7 +231,7 @@ export class CandidateController extends BaseController {
   public getTimeline = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { id } = req.params;
 
       const candidate = await prisma.candidate.findFirst({
@@ -294,7 +296,7 @@ export class CandidateController extends BaseController {
   public getInterviews = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { id } = req.params;
 
       const interviews = await prisma.interview.findMany({
@@ -316,7 +318,7 @@ export class CandidateController extends BaseController {
   public bulkUpdate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { candidateIds, action, payload } = req.body;
 
       if (!candidateIds?.length || !action) return this.badRequest(res, 'candidateIds and action required');
@@ -334,6 +336,9 @@ export class CandidateController extends BaseController {
               break;
             case 'HIRE':
               await prisma.candidate.update({ where: { id }, data: { status: 'HIRED' } });
+              break;
+            case 'ASSIGN_RECRUITER':
+              await prisma.candidate.update({ where: { id }, data: { assignedRecruiterId: payload.recruiterId } });
               break;
             case 'DELETE':
               await prisma.candidate.deleteMany({ where: { id, tenantId } });
@@ -354,29 +359,67 @@ export class CandidateController extends BaseController {
     }
   };
 
+  private get uploadResumeFileUseCase() {
+    return Container.getInstance().resolve<UploadResumeFileUseCase>('UploadResumeFileUseCase');
+  }
+
   public uploadResume = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.file) throw new ValidationError('Resume file is required.');
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
+      const userId = authReq.user?.userId || 'system-orchestrator';
+
+      // 1. First upload the file to get a valid URL
+      console.log('☁️ [Upload] Sending to storage...', req.file.originalname);
+      const uploadResult = await this.uploadResumeFileUseCase.execute({
+        file: req.file.buffer,
+        fileName: req.file.originalname,
+        uploadedBy: userId,
+        organizationId
+      });
+
+      if (!uploadResult.success) {
+        console.error('❌ [Upload] Storage failed:', uploadResult.error);
+        return this.serverError(res, { message: String(uploadResult.error), code: uploadResult.code });
+      }
+      console.log('✅ [Upload] Storage complete:', uploadResult.data.url);
+
+      // 2. Process/Parse the resume
       const result = await this.processResumeUseCase.execute({
         file: req.file.buffer,
         fileName: req.file.originalname,
         organizationId,
-        candidateEmail: typeof req.body.candidateEmail === 'string' ? req.body.candidateEmail : undefined,
+        resumeUrl: uploadResult.data.url,
+        jobId: typeof req.body.jobId === 'string' ? req.body.jobId : undefined,
       });
+
       if (!result.success) {
+        console.error('❌ [Upload] Resume processing failed:', result.error, 'Code:', result.code);
         if (result.code === 'MISSING_CANDIDATE_EMAIL' || result.code === 'INVALID_FILE_FORMAT') return this.badRequest(res, String(result.error), result.code);
         return this.serverError(res, { message: String(result.error), code: result.code });
       }
-      const dto = CandidateTransformer.toDetailedDTO(result.data);
+
+      const dto = CandidateTransformer.toDetailedDTO({ candidate: result.data, resume: null, evaluations: [] });
       const createdBy = authReq.user?.userId;
+
+      // Audit Log
+      await auditService.log({
+        tenantId: organizationId,
+        userId: createdBy,
+        action: 'CREATE',
+        resource: 'Candidate',
+        resourceId: dto.candidate.id,
+        changes: { source: 'RESUME_UPLOAD', fileName: req.file.originalname },
+        ipAddress: req.ip
+      });
+
       wsService.emit(organizationId, 'candidate:created', { candidateId: dto.candidate.id, name: `${dto.candidate.firstName} ${dto.candidate.lastName}`, jobId: (dto.candidate as any).jobId, createdBy });
       
       if (createdBy) {
-        await prisma.notification.create({
+        prisma.notification.create({
           data: { tenantId: organizationId, userId: createdBy, type: 'CANDIDATE_CREATED', title: 'New Candidate', message: `${dto.candidate.firstName} ${dto.candidate.lastName} resume parsed.` }
-        });
+        }).catch(err => console.warn('Failed to create notification:', err.message));
       }
       return this.rawOk(res, dto);
     } catch (error) {
@@ -389,7 +432,7 @@ export class CandidateController extends BaseController {
       const id = req.params.id as string;
       const newStageId = req.body.newStageId as string;
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
       const candidate = await this.candidateRepository.findById(id, organizationId);
       if (!candidate) return this.notFound(res, 'Candidate not found.', 'CANDIDATE_NOT_FOUND');
       const result = await this.moveCandidateUseCase.execute({
@@ -402,13 +445,28 @@ export class CandidateController extends BaseController {
       });
 
       const movedBy = authReq.user?.userId;
+
+      // Audit Log
+      await auditService.log({
+        tenantId: organizationId,
+        userId: movedBy,
+        action: 'STAGE_TRANSITION',
+        resource: 'Candidate',
+        resourceId: id,
+        changes: { 
+          fromStage: (candidate as any).currentStageId, 
+          toStage: newStageId,
+          reason: req.body.reason 
+        },
+        ipAddress: req.ip
+      });
+
       wsService.emit(organizationId, 'candidate:moved', { candidateId: id, fromStage: (candidate as any).currentStageId || 'unknown', toStage: newStageId, movedBy });
       
       if (movedBy) {
-        // Find assigned recruiter or someone to notify
-        await prisma.notification.create({
+        prisma.notification.create({
           data: { tenantId: organizationId, userId: movedBy, type: 'STAGE_MOVED', title: 'Stage Updated', message: `Candidate was moved to a new stage.` }
-        });
+        }).catch(err => console.warn('Failed to create move notification:', err.message));
       }
 
       return this.rawOk(res, result);
@@ -420,29 +478,203 @@ export class CandidateController extends BaseController {
   public reject = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
-      await prisma.candidate.update({ where: { id: req.params.id }, data: { status: 'REJECTED' } });
-      return this.rawOk(res, { success: true });
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
+      const { id } = req.params;
+      const { reason } = req.body || {};
+
+      // 1. Find candidate with tenant validation
+      const candidate = await prisma.candidate.findFirst({
+        where: { id, tenantId },
+        include: { job: { select: { title: true } } },
+      });
+      if (!candidate) return this.notFound(res, 'Candidate not found');
+
+      // 2. Guard: don't reject if already rejected or hired
+      if (candidate.status === 'REJECTED') {
+        return this.badRequest(res, 'Candidate is already rejected.');
+      }
+      if (candidate.status === 'HIRED') {
+        return this.badRequest(res, 'Cannot reject a hired candidate. Revoke the offer first.');
+      }
+
+      // 3. Update status 
+      const updated = await prisma.candidate.update({
+        where: { id },
+        data: {
+          status: 'REJECTED',
+          stageHistory: {
+            ...(Array.isArray(candidate.stageHistory) ? candidate.stageHistory : []),
+            push: { action: 'REJECTED', reason: reason || 'No reason provided', at: new Date().toISOString(), by: authReq.user?.email || 'system' },
+          } as any,
+        },
+        include: { currentStage: true },
+      });
+
+      // 4. Send rejection notification email
+      addEmailToQueue({
+        tenantId,
+        candidateId: id,
+        to: candidate.email,
+        subject: `Update on your application${candidate.job?.title ? ` for ${candidate.job.title}` : ''}`,
+        body: `Hi ${candidate.firstName},<br><br>Thank you for your interest and the time you invested in our selection process. After careful consideration, we have decided to move forward with other candidates at this time.<br><br>${reason ? `Feedback: ${reason}<br><br>` : ''}We wish you the best in your future endeavors.`,
+      }).catch(err => console.error('Failed to queue rejection email:', err));
+
+      // 5. Emit real-time event
+      wsService.emit(tenantId, 'candidate:rejected', {
+        candidateId: id,
+        name: `${candidate.firstName} ${candidate.lastName}`,
+        rejectedBy: authReq.user?.email,
+      });
+
+      // Audit Log
+      await auditService.log({
+        tenantId,
+        userId: authReq.user?.userId,
+        action: 'UPDATE',
+        resource: 'Candidate',
+        resourceId: id,
+        changes: { status: { old: candidate.status, new: 'REJECTED' }, reason },
+        ipAddress: req.ip
+      });
+
+      // 6. Create notification for the recruiter (non-blocking — don't crash the operation)
+      if (authReq.user?.userId) {
+        prisma.notification.create({
+          data: { tenantId, userId: authReq.user.userId, type: 'CANDIDATE_REJECTED', title: 'Candidate Rejected', message: `${candidate.firstName} ${candidate.lastName} was rejected.${reason ? ` Reason: ${reason}` : ''}` }
+        }).catch(err => console.warn('Failed to create reject notification:', err.message));
+      }
+
+      return this.rawOk(res, { success: true, status: 'REJECTED', candidateId: id });
     } catch (error) { return next(error); }
   };
 
   public hire = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await prisma.candidate.update({ where: { id: req.params.id }, data: { status: 'HIRED' } });
-      return this.rawOk(res, { success: true });
+      const authReq = req as unknown as AuthenticatedRequest;
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
+      const { id } = req.params;
+
+      // 1. Find candidate with tenant validation
+      const candidate = await prisma.candidate.findFirst({
+        where: { id, tenantId },
+        include: { job: { select: { title: true } } },
+      });
+      if (!candidate) return this.notFound(res, 'Candidate not found');
+
+      // 2. Guard: don't hire if already hired or rejected
+      if (candidate.status === 'HIRED') {
+        return this.badRequest(res, 'Candidate is already hired.');
+      }
+      if (candidate.status === 'REJECTED') {
+        return this.badRequest(res, 'Cannot hire a rejected candidate. Reactivate them first.');
+      }
+
+      // 3. Update status
+      const updated = await prisma.candidate.update({
+        where: { id },
+        data: {
+          status: 'HIRED',
+          stageHistory: {
+            ...(Array.isArray(candidate.stageHistory) ? candidate.stageHistory : []),
+            push: { action: 'HIRED', at: new Date().toISOString(), by: authReq.user?.email || 'system' },
+          } as any,
+        },
+        include: { currentStage: true },
+      });
+
+      // 4. Send offer/congratulations email
+      addEmailToQueue({
+        tenantId,
+        candidateId: id,
+        to: candidate.email,
+        subject: `Congratulations! Offer for ${candidate.job?.title || 'the position'}`,
+        body: `Hi ${candidate.firstName},<br><br>We are pleased to extend an offer for the ${candidate.job?.title || 'position'}. Our team was impressed with your skills and experience during the interview process.<br><br>We will be in touch shortly with the details of your offer package.`,
+      }).catch(err => console.error('Failed to queue offer email:', err));
+
+      // 5. Emit real-time event
+      wsService.emit(tenantId, 'candidate:hired', {
+        candidateId: id,
+        name: `${candidate.firstName} ${candidate.lastName}`,
+        hiredBy: authReq.user?.email,
+      });
+
+      // 6. Create notification (non-blocking — don't crash the operation)
+      if (authReq.user?.userId) {
+        prisma.notification.create({
+          data: { tenantId, userId: authReq.user.userId, type: 'CANDIDATE_HIRED', title: 'Candidate Hired', message: `${candidate.firstName} ${candidate.lastName} has been hired!` }
+        }).catch(err => console.warn('Failed to create hire notification:', err.message));
+      }
+
+      return this.rawOk(res, { success: true, status: 'HIRED', candidateId: id });
     } catch (error) { return next(error); }
   };
 
   public getResumeFeedback = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
       const result = await this.resumeFeedbackUseCase.execute({ candidateId: req.params.id as string, organizationId });
       if (!result.success) {
         if (result.code === 'CANDIDATE_NOT_FOUND' || result.code === 'RESUME_NOT_FOUND') return this.notFound(res, result.error as string, result.code);
         return this.serverError(res, { message: result.error as string, code: result.code });
       }
       return this.rawOk(res, result.data);
-    } catch (error) { return next(error); }
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  /** PATCH /candidates/:id/assign — Assign a recruiter */
+  public assignRecruiter = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
+      const { id } = req.params;
+      const { userId } = req.body;
+
+      if (!userId) return this.badRequest(res, 'userId is required');
+
+      const idStr = id as string;
+      const tenantIdStr = tenantId as string;
+      const candidate = await this.candidateRepository.findById(idStr, tenantIdStr);
+      if (!candidate) return this.notFound(res, 'Candidate not found');
+
+      const oldRecruiterId = candidate.getAssignedRecruiterId();
+      candidate.setAssignedRecruiterId(userId);
+      const updatedCandidate = await this.candidateRepository.update(idStr, candidate, tenantIdStr);
+
+      // Notify the recruiter
+      prisma.notification.create({
+        data: { 
+          tenantId: tenantIdStr, 
+          userId, 
+          type: 'TASK_ASSIGNED', 
+          title: 'Candidate Assigned', 
+          message: `You have been assigned as the lead recruiter for ${candidate.getName()}.` 
+        }
+      }).catch(() => {});
+
+      // Audit Log
+      await auditService.log({
+        tenantId: tenantIdStr,
+        userId: authReq.user?.userId,
+        action: 'UPDATE',
+        resource: 'Candidate',
+        resourceId: idStr,
+        changes: { 
+          assignedRecruiterId: { 
+            old: oldRecruiterId, 
+            new: userId 
+          } 
+        },
+        ipAddress: req.ip
+      });
+
+      wsService.emit(tenantIdStr, 'candidate:updated', { id: idStr, assignedRecruiterId: userId });
+
+      return this.ok(res, CandidateTransformer.toDTO(updatedCandidate));
+    } catch (error) {
+      return next(error);
+    }
   };
 }

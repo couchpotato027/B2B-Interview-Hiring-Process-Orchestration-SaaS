@@ -8,7 +8,7 @@ export class NotificationController extends BaseController {
   public getNotifications = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const userId = authReq.user?.userId;
 
       if (!userId) return this.badRequest(res, 'User ID is required');
@@ -28,7 +28,7 @@ export class NotificationController extends BaseController {
   public markAsRead = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const userId = authReq.user?.userId;
       const { id } = req.params;
 
@@ -48,7 +48,7 @@ export class NotificationController extends BaseController {
   public markAllAsRead = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const userId = authReq.user?.userId;
 
       if (!userId) return this.badRequest(res, 'User ID is required');

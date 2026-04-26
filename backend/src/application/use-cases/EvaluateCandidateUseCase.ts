@@ -1,14 +1,11 @@
 import { randomUUID } from 'crypto';
-import { Evaluation } from '../../domain/entities/Evaluation';
-import type { IEvaluationRepository } from '../../domain/repositories/IEvaluationRepository';
+import { Evaluation, EvaluationRecommendation } from '../../domain/entities/Evaluation';
 import type { ICandidateRepository } from '../../domain/repositories/ICandidateRepository';
 import type { IJobRepository } from '../../domain/repositories/IJobRepository';
+import type { IEvaluationRepository } from '../../domain/repositories/IEvaluationRepository';
 import type { IAIService } from '../../domain/services/IAIService';
-import type { EvaluationCompletedEvent } from '../../domain/events/DomainEvents';
-import { EventEmitter } from '../../infrastructure/events/EventEmitter';
-import { CandidateScorer } from '../services/CandidateScorer';
-import { ScoringStrategyFactory } from '../strategies/ScoringStrategyFactory';
-import type { Result } from '../../shared/Result';
+import { ScoringService } from '../services/ScoringService';
+import { Result } from '../../shared/Result';
 
 export interface EvaluateCandidateInput {
   candidateId: string;
@@ -16,111 +13,81 @@ export interface EvaluateCandidateInput {
   organizationId: string;
 }
 
-export interface EvaluateCandidateDependencies {
-  candidateRepository: ICandidateRepository;
-  jobRepository: IJobRepository;
-  evaluationRepository: IEvaluationRepository;
-  aiService: IAIService;
-  eventEmitter?: EventEmitter;
-}
-
 export class EvaluateCandidateUseCase {
-  private readonly eventEmitter: EventEmitter;
+  private readonly scoringService: ScoringService;
 
-  constructor(private readonly dependencies: EvaluateCandidateDependencies) {
-    this.eventEmitter = dependencies.eventEmitter ?? EventEmitter.getInstance();
+  constructor(
+    private readonly candidateRepository: ICandidateRepository,
+    private readonly jobRepository: IJobRepository,
+    private readonly evaluationRepository: IEvaluationRepository,
+    private readonly aiService: IAIService
+  ) {
+    this.scoringService = new ScoringService();
   }
 
   public async execute(input: EvaluateCandidateInput): Promise<Result<Evaluation>> {
-    const candidate = await this.dependencies.candidateRepository.findById(input.candidateId, input.organizationId);
-    if (!candidate) {
-      return {
-        success: false,
-        error: `Candidate ${input.candidateId} not found.`,
-        code: 'CANDIDATE_NOT_FOUND',
-      };
-    }
-
-    const job = await this.dependencies.jobRepository.findById(input.jobId, input.organizationId);
-    if (!job) {
-      return {
-        success: false,
-        error: `Job ${input.jobId} not found.`,
-        code: 'JOB_NOT_FOUND',
-      };
-    }
-
     try {
-      const scorer = new CandidateScorer(ScoringStrategyFactory.getDefaultStrategies());
-      const scores = await scorer.calculateScore(candidate, job);
-      const insights = await this.dependencies.aiService.generateCandidateInsights(
-        candidate,
-        job,
-        scores,
-      );
+      // 1. Fetch Candidate and Job
+      const [candidate, job] = await Promise.all([
+        this.candidateRepository.findById(input.candidateId, input.organizationId),
+        this.jobRepository.findById(input.jobId, input.organizationId)
+      ]);
 
-      const scoreMap = new Map(scores.strategies.map((strategy) => [strategy.name, strategy.score]));
+      if (!candidate) return { success: false, error: 'Candidate not found', code: 'CANDIDATE_NOT_FOUND' };
+      if (!job) return { success: false, error: 'Job not found', code: 'JOB_NOT_FOUND' };
 
-      const evaluation = new Evaluation({
-        id: randomUUID(),
-        candidateId: candidate.getId(),
-        jobId: job.getId(),
-        skillMatchScore: scoreMap.get('Skill Match') ?? 0,
-        experienceScore: scoreMap.get('Experience Match') ?? 0,
-        projectRelevanceScore: scoreMap.get('Project Relevance') ?? 0,
-        educationScore: scoreMap.get('Education') ?? 0,
-        culturalFitScore: scoreMap.get('Cultural Fit') ?? 0,
-        strengths: insights.strengths,
-        weaknesses: insights.weaknesses,
-        recommendation: this.mapRecommendation(insights.recommendation),
-        organizationId: input.organizationId,
-        evaluatedAt: new Date(),
+      // 2. Calculate scores using ScoringService (Deterministic logic)
+      const scores = this.scoringService.calculateScores(candidate, job);
+
+      // 3. Get AI insights (Gemini)
+      // Note: GeminiAIService has built-in fallbacks
+      const aiInsights = await this.aiService.generateCandidateInsights(candidate, job, {
+        overallScore: scores.overallScore,
+        strategies: [
+          { name: 'Skill Match', score: scores.skillMatchScore, weight: 0.4 },
+          { name: 'Experience', score: scores.experienceScore, weight: 0.3 },
+          { name: 'Project Relevance', score: scores.projectRelevanceScore, weight: 0.3 }
+        ]
       });
 
-      evaluation.setOverallScore(scores.overallScore);
+      // 4. Create Evaluation Entity
+      // Reuse existing evaluation ID if it exists to allow upsert
+      const existingEval = await this.evaluationRepository.findByCandidateAndJob(
+        candidate.getId(),
+        job.getId(),
+        input.organizationId
+      );
 
-      const savedEvaluation = await this.dependencies.evaluationRepository.save(evaluation);
+      const evaluation = new Evaluation({
+        id: existingEval ? existingEval.getId() : randomUUID(),
+        candidateId: candidate.getId(),
+        jobId: job.getId(),
+        skillMatchScore: scores.skillMatchScore,
+        experienceScore: scores.experienceScore,
+        projectRelevanceScore: scores.projectRelevanceScore,
+        overallScore: scores.overallScore,
+        strengths: aiInsights.strengths,
+        weaknesses: aiInsights.weaknesses,
+        missingSkills: aiInsights.missingSkills,
+        recommendation: aiInsights.recommendation as EvaluationRecommendation,
+        summary: aiInsights.summary,
+        organizationId: input.organizationId,
+        evaluatedAt: new Date()
+      });
 
-      const evaluationCompletedEvent: EvaluationCompletedEvent = {
-        eventType: 'EvaluationCompletedEvent',
-        timestamp: new Date(),
-        payload: {
-          evaluationId: savedEvaluation.getId(),
-          candidateId: savedEvaluation.getCandidateId(),
-          organizationId: input.organizationId,
-          jobId: savedEvaluation.getJobId(),
-          overallScore: savedEvaluation.getOverallScore(),
-          timestamp: new Date(),
-        },
-      };
-
-      await this.eventEmitter.emit(evaluationCompletedEvent);
+      // 5. Persist
+      const savedEvaluation = await this.evaluationRepository.save(evaluation);
 
       return {
         success: true,
-        data: savedEvaluation,
+        data: savedEvaluation
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to evaluate candidate.',
-        code: 'EVALUATION_FAILED',
+        error: error instanceof Error ? error.message : 'Evaluation failed',
+        code: 'EVALUATION_ERROR'
       };
     }
-  }
-
-  private mapRecommendation(
-    recommendation: string,
-  ): 'highly_recommended' | 'recommended' | 'consider' | 'not_recommended' {
-    const allowedRecommendations = new Set([
-      'highly_recommended',
-      'recommended',
-      'consider',
-      'not_recommended',
-    ]);
-
-    return allowedRecommendations.has(recommendation)
-      ? (recommendation as 'highly_recommended' | 'recommended' | 'consider' | 'not_recommended')
-      : 'consider';
   }
 }

@@ -14,7 +14,7 @@ export interface AppRequest extends Request {
 export const tenantContextMiddleware = (req: AppRequest, res: Response, next: NextFunction): void => {
     // 1. Development Bypass
     if (process.env.SKIP_AUTH === 'true' || process.env.REQUIRE_AUTH === 'false') {
-        req.user = { id: 'admin-id', tenantId: 'default-tenant-id', role: 'ADMIN', email: 'admin@hireflow.com' };
+        req.user = { id: 'admin-id', tenantId: 'default-tenant', role: 'ADMIN', email: 'admin@hireflow.com' };
         return next();
     }
 
@@ -25,7 +25,7 @@ export const tenantContextMiddleware = (req: AppRequest, res: Response, next: Ne
         const isPublic = publicPaths.some(p => url.startsWith(p));
         if (isPublic) {
             // Set default context so queries work
-            req.user = { id: 'admin-id', tenantId: 'default-tenant-id', role: 'ADMIN', email: 'admin@hireflow.com' };
+            req.user = { id: 'admin-id', tenantId: 'default-tenant', role: 'ADMIN', email: 'admin@hireflow.com' };
             return next();
         }
     }

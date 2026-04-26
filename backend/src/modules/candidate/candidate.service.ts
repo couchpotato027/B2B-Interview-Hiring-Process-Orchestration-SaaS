@@ -57,7 +57,7 @@ export class CandidateService {
                 job: { select: { id: true, title: true } },
                 evaluations: {
                     include: { interviewer: { select: { firstName: true, lastName: true, email: true } }, stage: { select: { name: true } } },
-                    orderBy: { createdAt: 'desc' },
+                    orderBy: { evaluatedAt: 'desc' },
                 },
                 decisions: { orderBy: { createdAt: 'desc' } },
                 interviews: {

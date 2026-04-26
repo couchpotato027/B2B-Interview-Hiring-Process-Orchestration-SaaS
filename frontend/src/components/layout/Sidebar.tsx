@@ -23,7 +23,7 @@ export default function Sidebar() {
         { name: t('common.jobs'), href: '/dashboard/jobs', icon: Briefcase },
         { name: t('common.pipelines'), href: '/dashboard/pipelines', icon: Layers },
         { name: t('common.candidates'), href: '/dashboard/candidates', icon: Users },
-        { name: 'Workflow Builder', href: '/dashboard/workflows', icon: GitMerge },
+        { name: t('common.workflows'), href: '/dashboard/workflows', icon: GitMerge },
         { name: t('common.reports'), href: '/dashboard/reports', icon: BarChart },
         { name: t('common.auditLog'), href: '/dashboard/compliance', icon: Shield },
         { name: t('common.settings'), href: '/dashboard/settings', icon: Settings },

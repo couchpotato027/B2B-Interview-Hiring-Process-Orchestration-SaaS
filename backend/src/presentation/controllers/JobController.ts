@@ -29,7 +29,7 @@ export class JobController extends BaseController {
   public createJob = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
       
       const result = await this.createJobUseCase.execute({
         ...req.body,
@@ -49,7 +49,7 @@ export class JobController extends BaseController {
   public getJobById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const job = await this.jobRepository.findById(req.params.id as string, organizationId);
 
@@ -66,7 +66,7 @@ export class JobController extends BaseController {
   public getJobs = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const jobs =
         typeof req.query.status === 'string'
@@ -82,7 +82,7 @@ export class JobController extends BaseController {
   public getMarketInsights = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const result = await this.marketInsightsUseCase.execute({
         jobId: req.params.id as string,
@@ -103,7 +103,7 @@ export class JobController extends BaseController {
   public getComparativeAnalysis = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const candidateIds = typeof req.query.candidateIds === 'string' 
         ? req.query.candidateIds.split(',') 
@@ -133,7 +133,7 @@ export class JobController extends BaseController {
   public configureScoring = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant-id';
+      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
       const job = await this.jobRepository.findById(req.params.id as string, organizationId);
       if (!job) {

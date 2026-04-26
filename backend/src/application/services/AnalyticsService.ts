@@ -21,86 +21,91 @@ export class AnalyticsService {
   ) {}
 
   async getDashboardMetrics(organizationId: string, dateRange: string): Promise<any> {
-    const now = new Date();
-    const days = parseInt(dateRange) || 30;
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    const prevStartDate = new Date(startDate.getTime() - days * 24 * 60 * 60 * 1000);
+    try {
+      const now = new Date();
+      const days = parseInt(dateRange) || 30;
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const prevStartDate = new Date(startDate.getTime() - days * 24 * 60 * 60 * 1000);
 
-    const [
-      activeCount,
-      prevActiveCount,
-      hires,
-      prevHires,
-      slaBreachesCount,
-      totalOffers
-    ] = await Promise.all([
-      this.db.candidate.count({ where: { tenantId: organizationId, status: 'ACTIVE' } }),
-      this.db.candidate.count({ where: { tenantId: organizationId, status: 'ACTIVE', createdAt: { lt: startDate } } }),
-      this.db.candidate.findMany({ 
-        where: { tenantId: organizationId, status: 'HIRED', updatedAt: { gte: startDate } },
-        select: { createdAt: true, updatedAt: true }
-      }),
-      this.db.candidate.findMany({ 
-        where: { tenantId: organizationId, status: 'HIRED', updatedAt: { gte: prevStartDate, lt: startDate } },
-        select: { createdAt: true, updatedAt: true }
-      }),
-      this.db.candidate.count({
-        where: {
-          tenantId: organizationId,
-          status: 'ACTIVE',
-          currentStage: {
-            slaHours: { gt: 0 }
-          },
-          // Logic: (now - stageEnteredAt) > slaHours
-          // This is hard to do in a single Prisma count without raw SQL or computed fields.
-          // We'll approximate or use findMany if count is small.
+      const [
+        activeCount,
+        prevActiveCount,
+        hires,
+        prevHires,
+        totalOffers,
+        totalJobs
+      ] = await Promise.all([
+        this.db.candidate.count({ where: { tenantId: organizationId, status: 'ACTIVE' } }),
+        this.db.candidate.count({ where: { tenantId: organizationId, status: 'ACTIVE', createdAt: { lt: startDate } } }),
+        this.db.candidate.findMany({ 
+          where: { tenantId: organizationId, status: 'HIRED', updatedAt: { gte: startDate } },
+          select: { createdAt: true, updatedAt: true }
+        }),
+        this.db.candidate.findMany({ 
+          where: { tenantId: organizationId, status: 'HIRED', updatedAt: { gte: prevStartDate, lt: startDate } },
+          select: { createdAt: true, updatedAt: true }
+        }),
+        this.db.candidate.count({
+          where: { tenantId: organizationId, status: { in: ['HIRED', 'REJECTED'] }, updatedAt: { gte: startDate } }
+        }),
+        this.db.job.count({
+          where: { tenantId: organizationId, status: 'OPEN' }
+        })
+      ]);
+
+      // SLA Breaches - Real calculation
+      const activeCandidates = await this.db.candidate.findMany({
+        where: { tenantId: organizationId, status: 'ACTIVE' },
+        include: { currentStage: true }
+      });
+      const realSlaBreaches = activeCandidates.filter((c: any) => {
+        if (!c.currentStage || !c.stageEnteredAt) return false;
+        const hoursInStage = (now.getTime() - new Date(c.stageEnteredAt).getTime()) / (1000 * 60 * 60);
+        return hoursInStage > (c.currentStage.slaHours || 48);
+      }).length;
+
+      const avgTimeToHire = hires.length > 0 
+        ? hires.reduce((acc: number, h: any) => {
+            const hireTime = h.updatedAt.getTime() - h.createdAt.getTime();
+            return acc + (hireTime > 0 ? hireTime : 0);
+          }, 0) / hires.length / (1000 * 60 * 60 * 24)
+        : 0;
+      
+      const prevAvgTimeToHire = prevHires.length > 0
+        ? prevHires.reduce((acc: number, h: any) => {
+            const hireTime = h.updatedAt.getTime() - h.createdAt.getTime();
+            return acc + (hireTime > 0 ? hireTime : 0);
+          }, 0) / prevHires.length / (1000 * 60 * 60 * 24)
+        : 0;
+
+      return {
+        activeCandidates: {
+          count: activeCount,
+          trend: prevActiveCount > 0 ? Math.round(((activeCount - prevActiveCount) / prevActiveCount) * 100) : 0,
+          isPositive: activeCount >= prevActiveCount
+        },
+        totalJobs: {
+          count: totalJobs
+        },
+        timeToHire: {
+          avgDays: Math.round(avgTimeToHire),
+          trend: prevAvgTimeToHire > 0 ? Math.round(avgTimeToHire - prevAvgTimeToHire) : 0,
+          isPositive: avgTimeToHire <= prevAvgTimeToHire
+        },
+        slaBreaches: {
+          count: realSlaBreaches,
+          message: `\u26a0\ufe0f ${realSlaBreaches} candidates overdue`
+        },
+        offersAccepted: {
+          count: hires.length,
+          total: totalOffers,
+          rate: totalOffers > 0 ? Math.round((hires.length / totalOffers) * 100) : 0
         }
-      }),
-      this.db.candidate.count({
-        where: { tenantId: organizationId, status: { in: ['HIRED', 'REJECTED'] }, updatedAt: { gte: startDate } }
-      })
-    ]);
-
-    // SLA Breaches - Real calculation
-    const activeCandidates = await this.db.candidate.findMany({
-      where: { tenantId: organizationId, status: 'ACTIVE' },
-      include: { currentStage: true }
-    });
-    const realSlaBreaches = activeCandidates.filter((c: any) => {
-      if (!c.currentStage || !c.stageEnteredAt) return false;
-      const hoursInStage = (now.getTime() - new Date(c.stageEnteredAt).getTime()) / (1000 * 60 * 60);
-      return hoursInStage > (c.currentStage.slaHours || 48);
-    }).length;
-
-    const avgTimeToHire = hires.length > 0 
-      ? hires.reduce((acc: number, h: any) => acc + (h.updatedAt.getTime() - h.createdAt.getTime()), 0) / hires.length / (1000 * 60 * 60 * 24)
-      : 0;
-    
-    const prevAvgTimeToHire = prevHires.length > 0
-      ? prevHires.reduce((acc: number, h: any) => acc + (h.updatedAt.getTime() - h.createdAt.getTime()), 0) / prevHires.length / (1000 * 60 * 60 * 24)
-      : 0;
-
-    return {
-      activeCandidates: {
-        count: activeCount,
-        trend: prevActiveCount > 0 ? Math.round(((activeCount - prevActiveCount) / prevActiveCount) * 100) : 0,
-        isPositive: activeCount >= prevActiveCount
-      },
-      timeToHire: {
-        avgDays: Math.round(avgTimeToHire),
-        trend: prevAvgTimeToHire > 0 ? Math.round(avgTimeToHire - prevAvgTimeToHire) : 0,
-        isPositive: avgTimeToHire <= prevAvgTimeToHire
-      },
-      slaBreaches: {
-        count: realSlaBreaches,
-        message: `\u26a0\ufe0f ${realSlaBreaches} candidates overdue`
-      },
-      offersAccepted: {
-        count: hires.length,
-        total: totalOffers,
-        rate: totalOffers > 0 ? Math.round((hires.length / totalOffers) * 100) : 0
-      }
-    };
+      };
+    } catch (error) {
+      console.error('[AnalyticsService] Error in getDashboardMetrics:', error);
+      throw error;
+    }
   }
 
   async calculateHiringMetrics(organizationId: string): Promise<HiringMetrics> {

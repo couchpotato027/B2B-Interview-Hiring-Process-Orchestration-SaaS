@@ -7,6 +7,7 @@ import {
     RefreshCw, TrendingUp, TrendingDown, ChevronDown, Calendar
 } from 'lucide-react';
 import { dashboardApi, reportsApi } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 import {
     BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, Cell, LabelList
@@ -47,6 +48,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function DashboardOverview() {
+    const { t } = useTranslation();
     const router = useRouter();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [funnelData, setFunnelData] = useState<any[]>([]);
@@ -100,7 +102,7 @@ export default function DashboardOverview() {
 
     const statCards = stats ? [
         {
-            name: 'Active Candidates',
+            name: t('dashboard.activeCandidates'),
             value: stats.activeCandidates.count,
             icon: Users,
             color: 'bg-[#c8ff00]',
@@ -110,7 +112,7 @@ export default function DashboardOverview() {
             onClick: () => handleDrillDown('status', 'ACTIVE')
         },
         {
-            name: 'Avg. Time to Hire',
+            name: t('dashboard.timeToHire'),
             value: stats.timeToHire.avgDays ? `${stats.timeToHire.avgDays}d` : 'N/A',
             icon: Clock,
             color: 'bg-blue-100',
@@ -120,7 +122,7 @@ export default function DashboardOverview() {
             onClick: () => handleDrillDown('status', 'HIRED')
         },
         {
-            name: 'SLA Alerts',
+            name: t('dashboard.slaAlerts'),
             value: stats.slaBreaches.count,
             icon: stats.slaBreaches.count > 0 ? AlertTriangle : CheckCircle,
             color: stats.slaBreaches.count > 0 ? 'bg-red-100' : 'bg-emerald-100',
@@ -128,7 +130,7 @@ export default function DashboardOverview() {
             onClick: () => handleDrillDown('sla')
         },
         {
-            name: 'Offers Accepted',
+            name: t('dashboard.offersAccepted'),
             value: `${stats.offersAccepted.count}/${stats.offersAccepted.total}`,
             subValue: `(${stats.offersAccepted.rate}%)`,
             icon: CheckCircle,
@@ -166,12 +168,12 @@ export default function DashboardOverview() {
             {/* ─── Header ──────────────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:text-3xl sm:tracking-tight">Hiring Overview</h2>
+                    <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:text-3xl sm:tracking-tight">{t('dashboard.title')}</h2>
                     <p className="mt-1 text-sm text-slate-500">
                         {lastUpdated && (
                             <span className="flex items-center gap-1.5 text-slate-400">
                                 <Clock className="h-3.5 w-3.5" />
-                                Last updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                {t('dashboard.lastUpdated', { time: lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) })}
                             </span>
                         )}
                     </p>
@@ -214,7 +216,7 @@ export default function DashboardOverview() {
                         className="flex items-center gap-2 rounded-xl bg-[#0a0f1a] px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition-all disabled:opacity-70 shadow-sm active:scale-95"
                     >
                         <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                        {refreshing ? '' : 'Refresh'}
+                        {refreshing ? '' : t('common.actions.refresh')}
                     </button>
                 </div>
             </div>
@@ -228,12 +230,12 @@ export default function DashboardOverview() {
                         className="relative overflow-hidden rounded-2xl bg-white px-4 pt-5 pb-6 shadow-sm sm:px-6 border border-slate-100 hover:shadow-md transition-all hover:-translate-y-1 cursor-pointer group"
                     >
                         <dt>
-                            <div className={`absolute rounded-xl ${item.color} p-3 shadow-sm group-hover:scale-110 transition-transform`}>
-                                <item.icon className="h-5 w-5 text-slate-800" aria-hidden="true" />
+                            <div className={`absolute rounded-xl ${item.color} p-2.5 sm:p-3 shadow-sm group-hover:scale-110 transition-transform`}>
+                                <item.icon className="h-4 w-4 sm:h-5 sm:h-5 text-slate-800" aria-hidden="true" />
                             </div>
-                            <p className="ml-16 truncate text-sm font-semibold text-slate-500 uppercase tracking-wider">{item.name}</p>
+                            <p className="ml-12 sm:ml-16 truncate text-[10px] sm:text-sm font-semibold text-slate-500 uppercase tracking-wider">{item.name}</p>
                         </dt>
-                        <dd className="ml-16 flex flex-col items-start mt-1">
+                        <dd className="ml-12 sm:ml-16 flex flex-col items-start mt-0.5 sm:mt-1">
                             <div className="flex items-baseline gap-1.5">
                                 <p className="text-3xl font-black text-slate-900 tracking-tight">{item.value}</p>
                                 {item.subValue && <p className="text-sm font-bold text-slate-400">{item.subValue}</p>}
@@ -259,8 +261,8 @@ export default function DashboardOverview() {
                 <div className="rounded-2xl bg-white shadow-sm py-6 px-4 sm:px-6 border border-slate-100 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h3 className="text-lg font-black text-slate-900">Hiring Funnel</h3>
-                            <p className="text-xs text-slate-400 font-medium">Candidate distribution by pipeline stage</p>
+                            <h3 className="text-lg font-black text-slate-900">{t('dashboard.metrics.funnel')}</h3>
+                            <p className="text-xs text-slate-400 font-medium">{t('dashboard.metrics.funnelDesc')}</p>
                         </div>
                         <div className="p-2 bg-slate-50 rounded-lg">
                             <Activity className="h-4 w-4 text-slate-400" />
@@ -305,8 +307,8 @@ export default function DashboardOverview() {
                 <div className="rounded-2xl bg-white shadow-sm py-6 px-4 sm:px-6 border border-slate-100 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h3 className="text-lg font-black text-slate-900">Velocity Trend</h3>
-                            <p className="text-xs text-slate-400 font-medium">Avg. days to hire over the last 6 months</p>
+                            <h3 className="text-lg font-black text-slate-900">{t('dashboard.metrics.velocity')}</h3>
+                            <p className="text-xs text-slate-400 font-medium">{t('dashboard.metrics.velocityDesc')}</p>
                         </div>
                         <div className="p-2 bg-slate-50 rounded-lg">
                             <Clock className="h-4 w-4 text-slate-400" />
@@ -356,8 +358,8 @@ export default function DashboardOverview() {
                 <div className="rounded-2xl bg-white shadow-sm py-6 px-4 sm:px-6 border border-slate-100 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h3 className="text-lg font-black text-slate-900">Conversion Bottlenecks</h3>
-                            <p className="text-xs text-slate-400 font-medium">Drop-off rate percentage per stage</p>
+                            <h3 className="text-lg font-black text-slate-900">{t('dashboard.metrics.bottlenecks')}</h3>
+                            <p className="text-xs text-slate-400 font-medium">{t('dashboard.metrics.bottlenecksDesc')}</p>
                         </div>
                         <div className="p-2 bg-slate-50 rounded-lg">
                             <TrendingDown className="h-4 w-4 text-slate-400" />
@@ -401,8 +403,8 @@ export default function DashboardOverview() {
                 <div className="rounded-2xl bg-[#0a0f1a] shadow-xl py-8 px-4 sm:px-8 text-white">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h3 className="text-xl font-black">Pipeline Health</h3>
-                            <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-bold">Real-time status tracking</p>
+                            <h3 className="text-xl font-black">{t('dashboard.metrics.health')}</h3>
+                            <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-bold">{t('dashboard.metrics.healthDesc')}</p>
                         </div>
                         {stats?.slaBreaches.count === 0 ? (
                             <span className="inline-flex items-center gap-1.5 text-xs font-black text-[#c8ff00] bg-[#c8ff00]/10 px-4 py-2 rounded-full border border-[#c8ff00]/20 uppercase tracking-wider">

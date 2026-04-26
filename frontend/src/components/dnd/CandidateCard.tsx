@@ -8,6 +8,7 @@ interface CandidateCardProps {
     candidate: Candidate;
     isOverlay?: boolean;
     loading?: boolean;
+    onClick?: (id: string) => void;
     selection?: {
         isSelected: (id: string) => boolean;
         toggleSelect: (id: string) => void;
@@ -15,7 +16,7 @@ interface CandidateCardProps {
     };
 }
 
-export function CandidateCard({ candidate, isOverlay, loading, selection }: CandidateCardProps) {
+export function CandidateCard({ candidate, isOverlay, loading, selection, onClick }: CandidateCardProps) {
     const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
     const {
         attributes,
@@ -34,16 +35,17 @@ export function CandidateCard({ candidate, isOverlay, loading, selection }: Cand
 
     const cardContent = (
         <div
+            onClick={() => onClick?.(candidate.id)}
             className={`
                 p-4 bg-white border-2 rounded-[16px] shadow-sm 
-                transition-all duration-200 group relative
+                transition-all duration-200 group relative cursor-pointer
                 ${isOverlay ? 'shadow-2xl border-[#c8ff00] scale-105 rotate-2 cursor-grabbing' : 'border-slate-100 hover:border-slate-200 hover:shadow-md'}
                 ${loading ? 'opacity-70 pointer-events-none' : ''}
                 ${selection?.isSelected(candidate.id) ? 'border-[#c8ff00] bg-[#c8ff00]/5' : ''}
             `}
         >
             <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
                     {selection && (
                         <input 
                             type="checkbox" 
@@ -78,9 +80,19 @@ export function CandidateCard({ candidate, isOverlay, loading, selection }: Cand
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
-                <span className="inline-flex items-center rounded-md bg-[#f8fafc] border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                    {candidate.score === 0 ? 'Pending' : `Score: ${candidate.score}`}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-md bg-[#f8fafc] border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                        {candidate.score === 0 ? 'Pending' : `Score: ${candidate.score}`}
+                    </span>
+                    {candidate.assignedRecruiter && (
+                        <div 
+                            className="h-6 w-6 rounded-full bg-[#c8ff00] flex items-center justify-center text-[10px] font-black text-[#0a0f1a] ring-2 ring-white shadow-sm"
+                            title={`Assigned to: ${candidate.assignedRecruiter.firstName} ${candidate.assignedRecruiter.lastName}`}
+                        >
+                            {candidate.assignedRecruiter.firstName[0]}{candidate.assignedRecruiter.lastName[0]}
+                        </div>
+                    )}
+                </div>
                 <span className="text-[11px] font-semibold text-slate-400">1d ago</span>
             </div>
         </div>

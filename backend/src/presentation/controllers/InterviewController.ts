@@ -6,6 +6,8 @@ import { SubmitFeedbackUseCase } from '../../application/use-cases/SubmitFeedbac
 import { IInterviewRepository } from '../../domain/repositories/IInterviewRepository';
 import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
 
+import { InterviewTransformer } from '../transformers/InterviewTransformer';
+
 export class InterviewController extends BaseController {
   private get scheduleUseCase() {
     return Container.getInstance().resolve<ScheduleInterviewUseCase>('ScheduleInterviewUseCase');
@@ -31,7 +33,7 @@ export class InterviewController extends BaseController {
         return this.badRequest(res, result.error as string, result.code);
       }
 
-      return this.created(res, result.data);
+      return this.created(res, InterviewTransformer.toDTO(result.data));
     } catch (error) {
       return next(error);
     }
@@ -64,7 +66,7 @@ export class InterviewController extends BaseController {
         const tenantId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string) || 'default-tenant';
 
         const interviews = await this.interviewRepository.findByCandidateId(req.params.candidateId as string, tenantId);
-        return this.ok(res, interviews);
+        return this.rawOk(res, InterviewTransformer.toCollectionDTO(interviews));
     } catch (error) {
         return next(error);
     }

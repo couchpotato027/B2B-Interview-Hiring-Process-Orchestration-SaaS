@@ -1,6 +1,5 @@
 import type { ParsedResumeData } from '../../domain/entities/Resume';
 import type { IResumeParser } from '../../domain/services/IResumeParser';
-import { extractStructuredResumeData } from './resume-extraction.util';
 
 export class TXTResumeParser implements IResumeParser {
   public supports(fileExtension: string): boolean {
@@ -8,6 +7,14 @@ export class TXTResumeParser implements IResumeParser {
   }
 
   public async parse(fileBuffer: Buffer, _fileName: string): Promise<ParsedResumeData> {
-    return extractStructuredResumeData(fileBuffer.toString('utf-8'));
+    return {
+      rawText: fileBuffer.toString('utf-8'),
+      name: '',
+      email: '',
+      skills: [],
+      experience: '',
+      education: '',
+      projects: []
+    } as any;
   }
 }

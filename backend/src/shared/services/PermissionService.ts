@@ -54,6 +54,12 @@ const PERMISSION_MATRIX: PermissionSpec = {
     AuditLog: {
         READ: ['ADMIN'],
         EXPORT: ['ADMIN'],
+    },
+    Pipeline: {
+        CREATE: ['ADMIN', 'RECRUITER'],
+        READ: ['ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'VIEWER'],
+        UPDATE: ['ADMIN', 'RECRUITER'],
+        DELETE: ['ADMIN'],
     }
 };
 

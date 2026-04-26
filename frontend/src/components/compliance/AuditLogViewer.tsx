@@ -23,11 +23,14 @@ export function AuditLogViewer() {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const data = await complianceApi.getAuditLogs(filters);
-      setLogs(data.logs);
-      setTotal(data.total);
+      const response = await complianceApi.getAuditLogs(filters);
+      // fetchWithAuth returns the full body { success: true, data: { logs, total } }
+      const logsData = response.data || {};
+      setLogs(logsData.logs || []);
+      setTotal(logsData.total || 0);
     } catch (error) {
       console.error('Failed to load audit logs:', error);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -120,7 +123,7 @@ export function AuditLogViewer() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {logs.map(log => (
+            {logs?.map(log => (
               <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-6 py-4 text-xs font-medium text-slate-500">
                   {format(new Date(log.createdAt), 'MMM d, HH:mm:ss')}

@@ -10,15 +10,22 @@ export interface CandidateDTO {
   lastName: string;
   email: string;
   phone: string;
+  summary: string;
   skills: string[];
   yearsOfExperience: number;
   education: string;
   status: string;
+  pipelineId: string;
+  currentStageId: string;
+  resumeUrl: string | null;
+  stageHistory: any[];
   projects: Array<{
     title: string;
     description: string;
     technologies: string[];
   }>;
+  assignedRecruiterId?: string;
+  score: number;
 }
 
 export interface CandidateDetailsDTO {
@@ -40,15 +47,22 @@ export class CandidateTransformer {
       lastName: lastName,
       email: candidate.getEmail(),
       phone: candidate.getPhone(),
+      summary: candidate.getSummary(),
       skills: candidate.getSkills(),
       yearsOfExperience: candidate.getYearsOfExperience(),
       education: candidate.getEducation().map(e => `${e.degree} at ${e.institution}`).join(', '),
       status: candidate.getStatus(),
+      pipelineId: candidate.getPipelineId(),
+      currentStageId: candidate.getCurrentStageId(),
+      resumeUrl: candidate.getResumeUrl() || null,
+      stageHistory: candidate.getStageHistory() || [],
       projects: candidate.getProjects().map(p => ({
         title: p.title,
         description: p.description,
         technologies: p.technologies,
       })),
+      assignedRecruiterId: candidate.getAssignedRecruiterId() || undefined,
+      score: candidate.getScore(),
     };
   }
 

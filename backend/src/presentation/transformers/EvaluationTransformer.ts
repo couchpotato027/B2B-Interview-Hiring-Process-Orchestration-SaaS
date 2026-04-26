@@ -12,7 +12,9 @@ export interface EvaluationDTO {
   overallScore: number;
   strengths: string[];
   weaknesses: string[];
+  missingSkills: string[];
   recommendation: string;
+  summary: string;
   evaluatedAt: string;
 }
 
@@ -30,7 +32,9 @@ export class EvaluationTransformer {
       overallScore: evaluation.getOverallScore(),
       strengths: evaluation.getStrengths(),
       weaknesses: evaluation.getWeaknesses(),
+      missingSkills: evaluation.getMissingSkills(),
       recommendation: evaluation.getRecommendation(),
+      summary: evaluation.getSummary(),
       evaluatedAt: evaluation.getEvaluatedAt().toISOString(),
     };
   }

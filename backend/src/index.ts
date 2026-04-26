@@ -2,6 +2,7 @@ import app from './app';
 import { setupContainer } from './infrastructure/di/setupContainer';
 import { prisma } from './infrastructure/database/prisma.client';
 import { logger } from './infrastructure/logging/logger';
+import { wsService } from './presentation/integration/websocket';
 
 // Catch ALL unhandled errors so Redis/BullMQ can never crash the process
 process.on('unhandledRejection', (reason) => {
@@ -13,16 +14,27 @@ const PORT = process.env.PORT || 3001;
 async function startServer() {
   try {
     console.log('📊 Starting HireFlow Bootloader...');
-    // 0. Environment Check
+    // 0. Environment Check 
     console.log('🌍 Environment Check:');
     console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
     console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? 'PRESENT (Masked)' : 'MISSING'}`);
     console.log(`   JWT_SECRET:   ${process.env.JWT_SECRET ? 'PRESENT (Masked)' : 'MISSING'}`);
 
-    // 1. Connect to Database
+    // 1. Connect to Database with Retry
     console.log('📡 Connecting to PostgreSQL (Prisma)...');
-    await prisma.$connect();
-    logger.info('✅ Database connected');
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        await prisma.$connect();
+        logger.info('✅ Database connected');
+        break;
+      } catch (err) {
+        retries -= 1;
+        console.error(`❌ Database connection failed. Retries left: ${retries}`);
+        if (retries === 0) throw err;
+        await new Promise(res => setTimeout(res, 3000)); // wait 3s
+      }
+    }
     
     // 2. Initialize Dependency Injection Container
     console.log('🔧 Initializing Dependency Container...');
@@ -49,6 +61,9 @@ async function startServer() {
       console.log(`      Jobs:       http://localhost:${PORT}/api/v1/jobs`);
       console.log('   ═══════════════════════════════════════');
     });
+
+    // 4. Initialize WebSocket Service
+    wsService.initialize(server);
 
     // Handle process events
     process.on('SIGINT', async () => {

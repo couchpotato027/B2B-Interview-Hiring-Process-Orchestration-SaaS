@@ -23,6 +23,41 @@ import { aiRateLimiter } from './RateLimiter';
 type JsonObject = Record<string, unknown>;
 
 export class GeminiAIService implements IAIService {
+  public async parseResume(resumeText: string): Promise<any> {
+    const prompt = [
+      'Extract structured information from the following resume text.',
+      'Also, provide a matching score (0-100) based on how professional and complete the resume is.',
+      'Return valid JSON with the following structure:',
+      '{',
+      '  "name": "Full Name",',
+      '  "email": "email@example.com",',
+      '  "phone": "Phone number",',
+      '  "summary": "Professional summary",',
+      '  "skills": ["Skill 1", "Skill 2"],',
+      '  "experience": "Summary of work experience",',
+      '  "education": "Summary of education",',
+      '  "projects": [',
+      '    { "title": "Project Name", "description": "Description", "technologies": ["Tech 1"] }',
+      '  ],',
+      '  "score": 85',
+      '}',
+      '',
+      `Resume Text:\n${resumeText}`,
+    ].join('\n');
+
+    try {
+      return await this.requestJson<any>(prompt, 'parseResume');
+    } catch (error) {
+      logger.error({ err: error }, 'Gemini: Resume parsing failed.');
+      return { 
+        name: 'Imported Candidate', 
+        email: '', 
+        skills: [], 
+        experience: '0 years', 
+        score: 50 
+      };
+    }
+  }
   private readonly genAI: GoogleGenerativeAI;
   private readonly model: string;
   private readonly maxRetries: number;

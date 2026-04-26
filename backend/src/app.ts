@@ -1,8 +1,8 @@
 // Deployment Version: 2.0.0
 import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
 import dotenv from 'dotenv';
 import { apiRouter } from './presentation/routes';
-import moduleRoutes from './routes';
 import { logger } from './infrastructure/logging/logger';
 
 // Load environment variables
@@ -30,6 +30,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Request Logging Middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -46,12 +47,15 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
-// 3. MOUNT ARCHITECTURES
+// 3. MOUNT CLEAN ARCHITECTURE ROUTES
 // Mount Clean Architecture routes under /api/v1
 app.use('/api/v1', apiRouter);
 
-// Mount Legacy Module routes (which already have /api/v1 prefixes)
-app.use(moduleRoutes);
+// NOTE: Legacy module routes (routes.ts) are intentionally NOT mounted here.
+// They duplicate the clean-architecture routes under the same /api/v1 prefix,
+// which caused conflicts. All functionality is served via `apiRouter` above.
+// import moduleRoutes from './routes';
+// app.use(moduleRoutes);
 
 // Debug Route: List all registered routes
 app.get('/api/debug/routes', (req: Request, res: Response) => {

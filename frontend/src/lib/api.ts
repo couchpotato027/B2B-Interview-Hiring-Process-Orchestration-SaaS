@@ -5,10 +5,12 @@ if (!base.startsWith('http')) {
     base = `https://${base}`;
 }
 export const API_BASE_URL = base.endsWith('/api/v1') ? base : `${base.replace(/\/$/, '')}/api/v1`;
+export const API_ROOT = base.replace(/\/api\/v1$/, '').replace(/\/$/, '');
 
 console.log('🌐 [HireFlow API] Initializing...');
 console.log('   - ENV Source:', envUrl || '(using fallback)');
 console.log('   - Computed Base:', API_BASE_URL);
+console.log('   - Computed Root:', API_ROOT);
 
 const apiCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 60000; // 60 seconds
@@ -40,9 +42,24 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
         headers,
     });
 
-    const data = await response.json();
+    // Handle non-JSON responses gracefully  
+    let data: any;
+    try {
+        data = await response.json();
+    } catch {
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        return {};
+    }
+
     if (!response.ok) {
-        throw new Error((data as { message?: string })?.message || 'API request failed');
+        // Extract error message from nested API error format: { error: { message } } or { message } or { error: string }
+        let message = 'API request failed';
+        if (typeof data?.error === 'string') message = data.error;
+        else if (typeof data?.error?.message === 'string') message = data.error.message;
+        else if (typeof data?.message === 'string') message = data.message;
+        throw new Error(message);
     }
 
     // 2. Cache GET results, clear on mutations
@@ -94,6 +111,10 @@ export const authApi = {
     listUsers: () => fetchWithAuth('/auth/users'),
     createUser: (data: unknown) => fetchWithAuth('/auth/users', { method: 'POST', body: JSON.stringify(data) }),
     updatePreferences: (data: { language: string }) => fetchWithAuth('/auth/preferences', { method: 'PATCH', body: JSON.stringify(data) }),
+    googleLogin: (idToken: string) => fetchWithAuth('/auth/google-login', { 
+        method: 'POST', 
+        body: JSON.stringify({ idToken }) 
+    }),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────
@@ -144,8 +165,10 @@ export const candidateApi = {
     moveStage: (id: string, newStageId: string) => fetchWithAuth(`/candidates/${id}/stage`, { method: 'PUT', body: JSON.stringify({ newStageId }) }),
     reject: (id: string) => fetchWithAuth(`/candidates/${id}/reject`, { method: 'POST' }),
     hire: (id: string) => fetchWithAuth(`/candidates/${id}/hire`, { method: 'POST' }),
+    assignRecruiter: (id: string, userId: string) => fetchWithAuth(`/candidates/${id}/assign`, { method: 'PATCH', body: JSON.stringify({ userId }) }),
     getTimeline: (id: string) => fetchWithAuth(`/candidates/${id}/timeline`),
     getInterviews: (id: string) => fetchWithAuth(`/candidates/${id}/interviews`),
+    getFeedback: (id: string) => fetchWithAuth(`/candidates/${id}/feedback`),
     bulkUpdate: (candidateIds: string[], action: string, payload: any) =>
         fetchWithAuth('/candidates/bulk-update', { method: 'POST', body: JSON.stringify({ candidateIds, action, payload }) }),
 };
@@ -159,6 +182,7 @@ export const pipelineApi = {
     delete: (id: string) => fetchWithAuth(`/pipelines/${id}`, { method: 'DELETE' }),
     reorderStages: (id: string, stageOrder: unknown) => fetchWithAuth(`/pipelines/${id}/reorder`, { method: 'PUT', body: JSON.stringify({ stageOrder }) }),
     addStage: (id: string, data: unknown) => fetchWithAuth(`/pipelines/${id}/stages`, { method: 'POST', body: JSON.stringify(data) }),
+    updateStage: (pipelineId: string, stageId: string, data: unknown) => fetchWithAuth(`/pipelines/${pipelineId}/stages/${stageId}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteStage: (pipelineId: string, stageId: string) => fetchWithAuth(`/pipelines/${pipelineId}/stages/${stageId}`, { method: 'DELETE' }),
 };
 

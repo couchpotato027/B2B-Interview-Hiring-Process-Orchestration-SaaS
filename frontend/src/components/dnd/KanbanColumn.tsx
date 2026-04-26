@@ -14,6 +14,7 @@ interface ColumnProps {
     column: ColumnType;
     candidates: Candidate[];
     isUpdating?: Record<string, boolean>;
+    onClick?: (id: string) => void;
     selection: {
         selectedIds: string[];
         isSelected: (id: string) => boolean;
@@ -22,7 +23,7 @@ interface ColumnProps {
     };
 }
 
-export function KanbanColumn({ column, candidates, isUpdating = {}, selection }: ColumnProps) {
+export function KanbanColumn({ column, candidates, isUpdating = {}, onClick, selection }: ColumnProps) {
     const { setNodeRef, isOver } = useDroppable({
         id: column.id,
     });
@@ -31,7 +32,7 @@ export function KanbanColumn({ column, candidates, isUpdating = {}, selection }:
         <div 
             ref={setNodeRef}
             className={`
-                flex-shrink-0 w-80 flex flex-col max-h-full bg-slate-50/80 rounded-[24px] border transition-all duration-200 overflow-hidden
+                flex-shrink-0 w-80 flex flex-col max-h-full bg-slate-50/80 rounded-[24px] border transition-all duration-200 overflow-hidden snap-center
                 ${isOver ? 'border-[#c8ff00] ring-4 ring-[#c8ff00]/10 shadow-lg' : 'border-slate-100 shadow-sm'}
             `}
         >
@@ -58,6 +59,7 @@ export function KanbanColumn({ column, candidates, isUpdating = {}, selection }:
                             key={candidate.id}
                             candidate={candidate}
                             loading={isUpdating[candidate.id]}
+                            onClick={onClick}
                             selection={selection}
                         />
                     ))}

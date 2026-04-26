@@ -6,6 +6,7 @@ export interface Candidate {
     role: string;
     avatar: string;
     score: number;
+    assignedRecruiter?: { id: string; firstName: string; lastName: string };
 }
 
 export interface Column {

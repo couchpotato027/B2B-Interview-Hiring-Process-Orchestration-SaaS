@@ -30,4 +30,5 @@ export interface IAIService {
   generateComparativeAnalysis(evaluations: Evaluation[], candidates: Candidate[], job: Job): Promise<ComparativeInsights>;
   generateJobMarketInsights(job: Job): Promise<MarketInsights>;
   generateResumeFeedback(resume: Resume): Promise<ResumeFeedback>;
+  parseResume(resumeText: string): Promise<any>;
 }

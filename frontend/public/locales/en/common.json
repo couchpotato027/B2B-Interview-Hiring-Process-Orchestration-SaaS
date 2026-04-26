@@ -4,11 +4,15 @@
     "jobs": "Jobs",
     "candidates": "Candidates",
     "pipelines": "Pipelines",
+    "workflows": "Workflow Builder",
     "reports": "Reports",
     "settings": "Settings",
     "auditLog": "Audit Log",
     "logout": "Logout",
-    "search": "Search candidates...",
+    "search": "Search candidates",
+    "filters": "Filters",
+    "stage": "Stage",
+    "status": "Status",
     "actions": {
       "create": "Create",
       "edit": "Edit",
@@ -17,17 +21,39 @@
       "cancel": "Cancel",
       "view": "View",
       "hire": "Hire",
-      "reject": "Reject"
-    },
-    "candidate": {
-      "status": {
-        "active": "Active",
-        "hired": "Hired",
-        "rejected": "Rejected",
-        "on_hold": "On Hold"
-      },
-      "details": "Candidate Details",
-      "history": "Interview History"
+      "reject": "Reject",
+      "refresh": "Refresh"
+    }
+  },
+  "dashboard": {
+    "title": "Hiring Overview",
+    "lastUpdated": "Last updated {{time}}",
+    "activeCandidates": "Active Candidates",
+    "timeToHire": "Avg. Time to Hire",
+    "slaAlerts": "SLA Alerts",
+    "offersAccepted": "Offers Accepted",
+    "metrics": {
+      "funnel": "Hiring Funnel",
+      "funnelDesc": "Candidate distribution by pipeline stage",
+      "velocity": "Velocity Trend",
+      "velocityDesc": "Avg. days to hire over the last 6 months",
+      "bottlenecks": "Conversion Bottlenecks",
+      "bottlenecksDesc": "Drop-off rate percentage per stage",
+      "health": "Pipeline Health",
+      "healthDesc": "Real-time status tracking"
+    }
+  },
+  "candidates": {
+    "title": "Candidates",
+    "searchCount": "Found {{count}} candidates",
+    "add": "Add Candidate",
+    "details": "Candidate Details",
+    "history": "Interview History",
+    "status": {
+      "active": "Active",
+      "hired": "Hired",
+      "rejected": "Rejected",
+      "on_hold": "On Hold"
     }
   }
 }

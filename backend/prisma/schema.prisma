@@ -46,7 +46,8 @@ model User {
   tenantId     String
   roleId       String
   email        String
-  passwordHash String
+  passwordHash String?
+  googleId     String?
   firstName    String   @default("")
   lastName     String   @default("")
   language     String   @default("en")
@@ -86,6 +87,7 @@ model Job {
   hiringManager      User?             @relation("HiringManager", fields: [hiringManagerId], references: [id], onDelete: SetNull)
   pipelineTemplate   PipelineTemplate? @relation(fields: [pipelineTemplateId], references: [id], onDelete: SetNull)
   candidates         Candidate[]
+  evaluations        Evaluation[]
 
   @@index([tenantId, status])
 }
@@ -134,15 +136,18 @@ model Candidate {
   lastName       String
   email          String
   phone          String?
+  summary        String?   @default("")
   resumeUrl      String?
-  skills         String[] @default([])
+  skills         String[]  @default([])
   yearsOfExperience Float    @default(0)
-  education      Json?    @default("[]")
-  projects       Json?    @default("[]")
-  status         String   @default("ACTIVE") // ACTIVE, REJECTED, HIRED, ON_HOLD
-  stageEnteredAt DateTime @default(now())
+  education      Json?     @default("[]")
+  projects       Json?     @default("[]")
+  status         String    @default("ACTIVE") // ACTIVE, REJECTED, HIRED, ON_HOLD
+  score          Int       @default(0)
+  stageEnteredAt DateTime  @default(now())
   stageHistory   Json?     @default("[]")
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
   assignedRecruiterId String?
   
   tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -162,19 +167,29 @@ model Candidate {
 }
 
 model Evaluation {
-  id             String   @id @default(uuid())
-  tenantId       String
-  candidateId    String
-  stageId        String
-  interviewerId  String
-  scores         Json     // Flexible scorecard (JSONB)
-  recommendation String   // 'STRONG_HIRE', 'HIRE', 'NO_HIRE'
-  createdAt      DateTime @default(now())
+  id                     String   @id @default(uuid())
+  tenantId               String
+  candidateId            String
+  jobId                  String   // Evaluation is primarily per Job
+  stageId                String?  // Optional: can evaluate at specific stage
+  interviewerId          String?  // Optional for AI evaluations
+  skillMatchScore        Int
+  experienceScore        Int
+  projectRelevanceScore  Int
+  overallScore           Int
+  strengths              String[]
+  weaknesses             String[]
+  missingSkills          String[]
+  recommendation         String   // HIGHLY_RECOMMENDED, RECOMMENDED, CONSIDER, NOT_RECOMMENDED
+  evaluatedAt            DateTime @default(now())
 
   tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   candidate   Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  stage       PipelineStage @relation(fields: [stageId], references: [id], onDelete: SetNull)
-  interviewer User          @relation(fields: [interviewerId], references: [id], onDelete: Restrict)
+  job         Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  stage       PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  interviewer User?         @relation(fields: [interviewerId], references: [id], onDelete: Restrict)
+
+  @@unique([candidateId, jobId])
 }
 
 model Decision {

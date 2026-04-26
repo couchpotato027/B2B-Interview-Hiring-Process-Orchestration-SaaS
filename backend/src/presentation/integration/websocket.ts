@@ -21,6 +21,7 @@ export class WebSocketService {
     this.io = new Server(server, {
       cors: corsConfig,
       pingTimeout: 60000,
+      transports: ['polling', 'websocket'],
     });
 
     this.io.use((socket, next) => {

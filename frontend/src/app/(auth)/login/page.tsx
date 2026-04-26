@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -12,8 +13,9 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e: React.SyntheticEvent) => {
+        if (e) e.preventDefault();
+        console.log('🚀 Login attempt initiated for:', email);
         setError('');
         setLoading(true);
 
@@ -35,8 +37,26 @@ export default function LoginPage() {
         }
     };
 
+    const handleGoogleSuccess = async (credentialResponse: any) => {
+        if (!credentialResponse.credential) return;
+        
+        setLoading(true);
+        setError('');
+        try {
+            const data = await authApi.googleLogin(credentialResponse.credential);
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            router.push('/dashboard');
+        } catch (err: any) {
+            setError(err.message || 'Google login failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
             <div>
                 <h2 className="mt-8 text-3xl font-bold tracking-tight text-gray-900">Sign in to your account</h2>
                 <p className="mt-2 text-sm text-gray-600">
@@ -50,6 +70,7 @@ export default function LoginPage() {
             <div className="mt-10">
                 <div>
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* ... existing email/password fields ... */}
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium leading-6 text-gray-900">
                                 Email address
@@ -57,7 +78,6 @@ export default function LoginPage() {
                             <div className="mt-2">
                                 <input
                                     id="email"
-                                    name="email"
                                     type="email"
                                     autoComplete="email"
                                     required
@@ -75,7 +95,6 @@ export default function LoginPage() {
                             <div className="mt-2">
                                 <input
                                     id="password"
-                                    name="password"
                                     type="password"
                                     autoComplete="current-password"
                                     required
@@ -100,7 +119,6 @@ export default function LoginPage() {
                             <div className="flex items-center">
                                 <input
                                     id="remember-me"
-                                    name="remember-me"
                                     type="checkbox"
                                     className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600"
                                 />
@@ -116,18 +134,40 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        <div>
+                        <div className="space-y-3">
                             <button
-                                type="submit"
+                                type="button"
+                                onClick={handleSubmit}
                                 disabled={loading}
                                 className="flex w-full justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-50 transition-colors"
                             >
                                 {loading ? 'Signing in...' : 'Sign in'}
                             </button>
+
+                            <div className="relative my-6">
+                                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                    <div className="w-full border-t border-gray-300"></div>
+                                </div>
+                                <div className="relative flex justify-center text-sm leading-6">
+                                    <span className="bg-white px-6 text-gray-900 font-medium">Or continue with</span>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-center">
+                                <GoogleLogin 
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={() => setError('Google login failed')}
+                                    useOneTap
+                                    theme="outline"
+                                    shape="rectangular"
+                                    width="100%"
+                                />
+                            </div>
                         </div>
                     </form>
                 </div>
             </div>
+        </GoogleOAuthProvider>
         </>
     );
 }

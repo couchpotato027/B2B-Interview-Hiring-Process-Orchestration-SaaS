@@ -1,12 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { ICandidatePipelineStatusRepository } from '../../domain/repositories/ICandidatePipelineStatusRepository';
 import { CandidatePipelineStatus } from '../../domain/entities/CandidatePipelineStatus';
+import { prisma } from '../database/prisma.client';
 
 export class PrismaCandidatePipelineStatusRepository implements ICandidatePipelineStatusRepository {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
   }
 
   async save(status: CandidatePipelineStatus): Promise<void> {
@@ -49,7 +50,7 @@ export class PrismaCandidatePipelineStatusRepository implements ICandidatePipeli
       where: { pipelineId, tenantId: organizationId },
     });
 
-    return candidates.map(this.mapToEntity);
+    return candidates.map(m => this.mapToEntity(m));
   }
 
   async findByStageId(stageId: string, organizationId: string): Promise<CandidatePipelineStatus[]> {
@@ -57,7 +58,7 @@ export class PrismaCandidatePipelineStatusRepository implements ICandidatePipeli
       where: { currentStageId: stageId, tenantId: organizationId },
     });
 
-    return candidates.map(this.mapToEntity);
+    return candidates.map(m => this.mapToEntity(m));
   }
 
   async delete(id: string, organizationId: string): Promise<void> {

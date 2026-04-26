@@ -17,10 +17,10 @@ const getController = () => {
 };
 
 // Dashboard Integrated Stats
-analyticsRouter.get('/dashboard/metrics', async (req, res, next) => {
+analyticsRouter.get('/metrics', async (req, res, next) => {
     try {
         const authReq = req as unknown as AuthenticatedRequest;
-        const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+        const organizationId = authReq.user?.organizationId || 'default-tenant';
         const dateRange = req.query.dateRange as string || '30d';
         const service = container.resolve<AnalyticsService>('AnalyticsService');
         
@@ -29,10 +29,10 @@ analyticsRouter.get('/dashboard/metrics', async (req, res, next) => {
     } catch (e) { return next(e); }
 });
 
-analyticsRouter.get('/dashboard/trends', async (req, res, next) => {
+analyticsRouter.get('/trends', async (req, res, next) => {
     try {
         const authReq = req as unknown as AuthenticatedRequest;
-        const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+        const organizationId = authReq.user?.organizationId || 'default-tenant';
         const metric = req.query.metric as string || 'timeToHire';
         const dateRange = req.query.dateRange as string || '6m';
         const service = container.resolve<AnalyticsService>('AnalyticsService');
@@ -50,7 +50,7 @@ analyticsRouter.get('/dashboard/trends', async (req, res, next) => {
 analyticsRouter.get('/stats', async (req, res, next) => {
     try {
         const authReq = req as unknown as AuthenticatedRequest;
-        const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+        const organizationId = authReq.user?.organizationId || 'default-tenant';
         const service = container.resolve<AnalyticsService>('AnalyticsService');
         const metrics = await service.getDashboardMetrics(organizationId, '30d');
         
@@ -68,7 +68,7 @@ analyticsRouter.get('/stats', async (req, res, next) => {
 analyticsRouter.get('/funnel', async (req, res, next) => {
     try {
         const authReq = req as unknown as AuthenticatedRequest;
-        const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+        const organizationId = authReq.user?.organizationId || 'default-tenant';
         const pipelineRepo = container.resolve<any>('PipelineRepository');
         const pipelines = await pipelineRepo.findAll(organizationId);
         const pipelineId = req.query.pipelineId as string || (pipelines[0]?.getId());
@@ -84,7 +84,7 @@ analyticsRouter.get('/funnel', async (req, res, next) => {
 analyticsRouter.get('/time-to-hire', async (req, res, next) => {
     try {
         const authReq = req as unknown as AuthenticatedRequest;
-        const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+        const organizationId = authReq.user?.organizationId || 'default-tenant';
         const service = container.resolve<AnalyticsService>('AnalyticsService');
         const data = await service.getTimeToHireTrend(organizationId, '6m');
         res.status(200).json(data);
@@ -94,7 +94,7 @@ analyticsRouter.get('/time-to-hire', async (req, res, next) => {
 analyticsRouter.get('/dropoff', async (req, res, next) => {
     try {
         const authReq = req as unknown as AuthenticatedRequest;
-        const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+        const organizationId = authReq.user?.organizationId || 'default-tenant';
         const pipelineRepo = container.resolve<any>('PipelineRepository');
         const pipelines = await pipelineRepo.findAll(organizationId);
         const pipelineId = req.query.pipelineId as string || (pipelines[0]?.getId());
@@ -116,7 +116,7 @@ analyticsRouter.get('/dropoff', async (req, res, next) => {
 analyticsRouter.get('/offer-rate', async (req, res, next) => {
     try {
         const authReq = req as unknown as AuthenticatedRequest;
-        const organizationId = authReq.user?.organizationId || 'default-tenant-id';
+        const organizationId = authReq.user?.organizationId || 'default-tenant';
         const service = container.resolve<AnalyticsService>('AnalyticsService');
         const metrics = await service.getDashboardMetrics(organizationId, '30d');
         

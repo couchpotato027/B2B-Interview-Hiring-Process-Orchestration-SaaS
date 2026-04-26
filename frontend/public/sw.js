@@ -8,7 +8,12 @@ const ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      // Add each asset individually and catch errors so one missing asset doesn't fail the whole cache
+      return Promise.allSettled(
+        ASSETS.map(asset => cache.add(asset).catch(err => console.warn('SW failed to cache:', asset, err)))
+      );
+    })
   );
 });
 

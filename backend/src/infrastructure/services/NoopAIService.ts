@@ -15,6 +15,9 @@ import type {
 import type { ScoreBreakdown } from '../../domain/types/ScoringTypes';
 
 export class NoopAIService implements IAIService {
+  async parseResume(resumeText: string): Promise<any> {
+    return { name: 'Unknown', email: '', skills: [], experience: 0 };
+  }
   public async extractSkillsFromResume(): Promise<string[]> {
     return [];
   }

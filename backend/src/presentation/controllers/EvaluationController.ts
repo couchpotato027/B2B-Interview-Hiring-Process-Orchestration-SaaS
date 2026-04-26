@@ -1,195 +1,153 @@
 import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from './BaseController';
-import { Container } from '../../infrastructure/di/Container';
 import { EvaluateCandidateUseCase } from '../../application/use-cases/EvaluateCandidateUseCase';
 import { RankCandidatesForJobUseCase } from '../../application/use-cases/RankCandidatesForJobUseCase';
 import { BatchEvaluationUseCase } from '../../application/use-cases/BatchEvaluationUseCase';
+import { IEvaluationRepository } from '../../domain/repositories/IEvaluationRepository';
+import { Container } from '../../infrastructure/di/Container';
 import { EvaluationTransformer } from '../transformers/EvaluationTransformer';
-import { wsService } from '../integration/websocket';
 import { AuthenticatedRequest } from '../../infrastructure/middleware/AuthMiddleware';
-import { prisma } from '../../infrastructure/database/prisma.client';
+import { CandidateTransformer } from '../transformers/CandidateTransformer';
+import { auditService } from '../../application/services/AuditService';
 
 export class EvaluationController extends BaseController {
   private get evaluateCandidateUseCase() {
     return Container.getInstance().resolve<EvaluateCandidateUseCase>('EvaluateCandidateUseCase');
   }
-  private get rankCandidatesForJobUseCase() {
+
+  private get rankCandidatesUseCase() {
     return Container.getInstance().resolve<RankCandidatesForJobUseCase>('RankCandidatesForJobUseCase');
   }
+
   private get batchEvaluationUseCase() {
     return Container.getInstance().resolve<BatchEvaluationUseCase>('BatchEvaluationUseCase');
   }
 
-  constructor() {
-    super();
+  private get evaluationRepository() {
+    return Container.getInstance().resolve<IEvaluationRepository>('EvaluationRepository');
   }
 
-  public createEvaluation = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
+  public createEvaluation = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const authReq = req as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string);
-
-      if (!organizationId) {
-        return this.badRequest(res, 'Organization ID is required.', 'MISSING_ORGANIZATION_ID');
-      }
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
 
       const result = await this.evaluateCandidateUseCase.execute({
-        ...req.body,
+        candidateId: req.body.candidateId,
+        jobId: req.body.jobId,
         organizationId
       });
 
       if (!result.success) {
-        const isNotFound = result.code === 'CANDIDATE_NOT_FOUND' || result.code === 'JOB_NOT_FOUND';
-        if (isNotFound) {
-          return this.notFound(res, result.error as string, result.code);
-        }
-
-        return this.serverError(res, { message: result.error as string, code: result.code });
-      }
-
-      const dto = EvaluationTransformer.toDTO(result.data);
-      
-      // Emit real-time events
-      const evaluatedBy = authReq.user?.userId;
-      wsService.emit(organizationId, 'candidate:evaluated', { candidateId: dto.candidateId, jobId: dto.jobId, score: (dto as any).score || 0, evaluatedBy });
-      wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: dto.jobId });
-
-      if (evaluatedBy) {
-        await prisma.notification.create({
-          data: { tenantId: organizationId, userId: evaluatedBy, type: 'CANDIDATE_EVALUATED', title: 'Evaluation Submitted', message: `Evaluation for candidate completed.` }
-        });
-      }
-
-      return this.created(res, dto);
-    } catch (error) {
-      return next(error);
-    }
-  };
-
-  public getJobRankings = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string);
-
-      if (!organizationId) {
-        return this.badRequest(res, 'Organization ID is required.', 'MISSING_ORGANIZATION_ID');
-      }
-
-      const result = await this.rankCandidatesForJobUseCase.execute({
-        jobId: req.params.jobId as string,
-        organizationId
-      });
-
-      if (!result.success) {
-        const isNotFound = result.code === 'JOB_NOT_FOUND';
-        if (isNotFound) {
-          return this.notFound(res, result.error as string, result.code);
-        }
-
         return this.badRequest(res, result.error as string, result.code);
       }
 
-      return this.ok(res, result.data);
+      // Audit Log
+      await auditService.log({
+        tenantId: organizationId,
+        userId: authReq.user?.userId,
+        action: 'CREATE',
+        resource: 'Evaluation',
+        resourceId: result.data.getId(),
+        changes: { candidateId: req.body.candidateId, jobId: req.body.jobId },
+        ipAddress: req.ip
+      });
+
+      return this.rawOk(res, EvaluationTransformer.toDTO(result.data));
     } catch (error) {
       return next(error);
     }
   };
 
-  public createBatchEvaluation = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
+  public getJobRankings = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const authReq = req as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string);
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
+      const { jobId } = req.params;
 
-      if (!organizationId) {
-        return this.badRequest(res, 'Organization ID is required.', 'MISSING_ORGANIZATION_ID');
-      }
-
-      const result = await this.batchEvaluationUseCase.execute({
-        ...req.body,
+      const result = await this.rankCandidatesUseCase.execute({
+        jobId: jobId as string,
         organizationId
       });
 
       if (!result.success) {
-        return this.serverError(res, { message: result.error as string, code: result.code });
+        return this.badRequest(res, result.error as string, result.code);
       }
 
-      // Transform successful evaluations
-      const transformedSuccessful = result.data.successful.map((e: any) =>
-        EvaluationTransformer.toDTO(e),
-      );
+      // Transform result
+      const data = result.data.map(item => ({
+        candidate: CandidateTransformer.toDTO(item.candidate),
+        evaluation: EvaluationTransformer.toDTO(item.evaluation),
+        rank: item.rank
+      }));
 
-      const evaluatedBy = authReq.user?.userId;
-      
-      // Emit real-time events for each successful evaluation
-      for (const dto of transformedSuccessful) {
-        wsService.emit(organizationId, 'candidate:evaluated', { candidateId: dto.candidateId, jobId: dto.jobId, score: (dto as any).score || 0, evaluatedBy });
+      return this.rawOk(res, data);
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  public createBatchEvaluation = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
+      const { jobId, candidateIds } = req.body;
+
+      const result = await this.batchEvaluationUseCase.execute({
+        jobId,
+        candidateIds,
+        organizationId
+      });
+
+      if (!result.success) {
+        return this.badRequest(res, result.error as string, result.code);
       }
 
-      if (transformedSuccessful.length > 0 && evaluatedBy) {
-        wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: req.body.jobId });
-        await prisma.notification.create({
-          data: { tenantId: organizationId, userId: evaluatedBy, type: 'CANDIDATE_EVALUATED', title: 'Batch Evaluation Submitted', message: `${transformedSuccessful.length} evaluations completed.` }
-        });
-      }
-
-      return this.ok(res, {
-        successful: transformedSuccessful,
-        failed: result.data.failed,
+      return this.rawOk(res, {
+        successful: result.data.successful.map(e => EvaluationTransformer.toDTO(e)),
+        failed: result.data.failed
       });
     } catch (error) {
       return next(error);
     }
   };
 
-  public recalculateEvaluation = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
+  public recalculateEvaluation = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const authReq = req as AuthenticatedRequest;
-      const organizationId = authReq.user?.organizationId || (req.headers['x-organization-id'] as string);
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
+      const { id } = req.params;
 
-      if (!organizationId) {
-        return this.badRequest(res, 'Organization ID is required.', 'MISSING_ORGANIZATION_ID');
-      }
-
-      // Fetch the existing evaluation first to get candidateId and jobId
-      const existing = await (prisma.evaluation.findFirst as any)({
-        where: { id: req.params.id, tenantId: organizationId },
-        include: { candidate: { select: { jobId: true } } }
-      });
-
+      const existing = await this.evaluationRepository.findById(id as string, organizationId);
       if (!existing) {
-        return this.notFound(res, 'Evaluation not found.', 'EVALUATION_NOT_FOUND');
+        return this.notFound(res, 'Evaluation not found');
       }
 
       const result = await this.evaluateCandidateUseCase.execute({
-        candidateId: existing.candidateId,
-        jobId: existing.candidate?.jobId || 'legacy-job',
+        candidateId: existing.getCandidateId(),
+        jobId: existing.getJobId(),
         organizationId
       });
 
       if (!result.success) {
-        return this.serverError(res, { message: result.error as string, code: result.code });
+        return this.badRequest(res, result.error as string, result.code);
       }
 
-      const dto = EvaluationTransformer.toDTO(result.data);
-      wsService.emit(organizationId, 'RANKINGS_UPDATED', { jobId: dto.jobId });
+      return this.rawOk(res, EvaluationTransformer.toDTO(result.data));
+    } catch (error) {
+      return next(error);
+    }
+  };
 
-      return this.ok(res, dto);
+  public getCandidateEvaluations = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const organizationId = authReq.user?.organizationId || 'default-tenant';
+      const { candidateId } = req.params;
+
+      const evaluations = await this.evaluationRepository.findByCandidateId(candidateId as string, organizationId);
+      
+      return this.rawOk(res, evaluations.map(e => EvaluationTransformer.toDTO(e)));
     } catch (error) {
       return next(error);
     }

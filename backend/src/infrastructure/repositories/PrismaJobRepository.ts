@@ -31,7 +31,7 @@ export class PrismaJobRepository implements IJobRepository {
         }
       }
     });
-    return models.map(this.mapToEntity);
+    return models.map(m => this.mapToEntity(m));
   }
 
   async save(job: Job): Promise<Job> {
@@ -45,6 +45,7 @@ export class PrismaJobRepository implements IJobRepository {
       requiredSkills: job.getRequiredSkills(),
       preferredSkills: job.getPreferredSkills(),
       requiredExperience: job.getRequiredExperience(),
+      pipelineTemplateId: job.getPipelineTemplateId() || null,
       scoringWeights: (job.getScoringWeights() || {}) as any,
     };
 
@@ -66,11 +67,12 @@ export class PrismaJobRepository implements IJobRepository {
       requiredSkills: job.getRequiredSkills(),
       preferredSkills: job.getPreferredSkills(),
       requiredExperience: job.getRequiredExperience(),
+      pipelineTemplateId: job.getPipelineTemplateId() || null,
       scoringWeights: (job.getScoringWeights() || {}) as any,
     };
 
     const updated = await this.prisma.job.update({
-      where: { id, tenantId: organizationId },
+      where: { id },
       data,
     });
 
@@ -79,7 +81,7 @@ export class PrismaJobRepository implements IJobRepository {
 
   async delete(id: string, organizationId: string): Promise<void> {
     await this.prisma.job.delete({
-      where: { id, tenantId: organizationId },
+      where: { id },
     });
   }
 
@@ -92,7 +94,7 @@ export class PrismaJobRepository implements IJobRepository {
         }
       }
     });
-    return models.map(this.mapToEntity);
+    return models.map(m => this.mapToEntity(m));
   }
 
   async findByOrganizationId(organizationId: string): Promise<Job[]> {
@@ -110,6 +112,7 @@ export class PrismaJobRepository implements IJobRepository {
       preferredSkills: model.preferredSkills || [],
       requiredExperience: model.requiredExperience || 0,
       status: model.status.toLowerCase() as JobStatus,
+      pipelineTemplateId: model.pipelineTemplateId,
       scoringWeights: model.scoringWeights || {},
     });
     

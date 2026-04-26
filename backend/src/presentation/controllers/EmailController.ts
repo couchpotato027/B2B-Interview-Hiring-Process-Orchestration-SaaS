@@ -25,7 +25,7 @@ export class EmailController extends BaseController {
   public sendEmail = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { to, subject, body, candidateId } = req.body;
 
       if (!to || !subject || !body) {
@@ -50,7 +50,7 @@ export class EmailController extends BaseController {
   public bulkSend = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const { candidates, subject, bodyTemplate } = req.body;
 
       if (!candidates || !Array.isArray(candidates)) {
@@ -82,7 +82,7 @@ export class EmailController extends BaseController {
   public getHistory = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest;
-      const tenantId = authReq.user?.organizationId || 'default-tenant-id';
+      const tenantId = authReq.user?.organizationId || 'default-tenant';
       const history = await emailService.getHistory(req.params.candidateId as string, tenantId);
       return this.rawOk(res, history);
     } catch (error) {

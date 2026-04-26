@@ -11,82 +11,89 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-const PUBLIC_ROUTES = [
-  'GET /api/v1/candidates',
-  'GET /api/v1/jobs',
-  'GET /api/v1/pipelines',
-  'GET /api/v1/evaluations',
-  'GET /api/health',
-  'GET /api/v1/dashboard/stats',
-  'GET /api/reports/funnel'
-];
-
 export const authMiddleware = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
-  // 1. Development Bypass
-  if (process.env.SKIP_AUTH === 'true' || process.env.REQUIRE_AUTH === 'false') {
-    req.user = { 
-        userId: 'admin-id', 
-        organizationId: 'default-tenant-id', 
-        role: 'ADMIN', 
-        email: 'admin@hireflow.com' 
-    };
-    return next();
-  }
-
-  // 2. Check for Public Routes (GET only)
-  const routeKey = `${req.method} ${req.path}`;
-  const isPublic = PUBLIC_ROUTES.some(route => 
-    routeKey.startsWith(route) || (req.method === 'GET' && req.path.includes('/api/v1/evaluations'))
-  );
-
-  if (isPublic) {
-    // Set default context so queries work
-    req.user = { 
-        userId: 'admin-id', 
-        organizationId: 'default-tenant-id', 
-        role: 'ADMIN', 
-        email: 'admin@hireflow.com' 
-    };
-    return next();
-  }
-
+  // 1. Try to extract token from header (works for both dev and prod)
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({
-      success: false,
-      error: 'Authorization header is missing or invalid',
-      code: 'UNAUTHORIZED'
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    if (token) {
+      try {
+        const container = Container.getInstance();
+        const authService = container.resolve<AuthService>('AuthService');
+        const payload = authService.verifyToken(token);
+        req.user = payload;
+        return next();
+      } catch (error) {
+        // Token invalid — fall through to dev bypass or reject
+      }
+    }
+  }
+
+  // 2. Development Bypass (only if no valid token was provided)
+  if (process.env.SKIP_AUTH === 'true' || process.env.REQUIRE_AUTH === 'false') {
+    // Use a real user from DB via lazy lookup (cached after first call)
+    resolveDevUser().then(devUser => {
+      req.user = devUser;
+      next();
+    }).catch(() => {
+      // Fallback if DB lookup fails
+      req.user = {
+        userId: 'system',
+        organizationId: 'default-tenant',
+        role: 'ADMIN',
+        email: 'admin@hireflow.com'
+      };
+      next();
     });
     return;
   }
 
-  const token = authHeader.split(' ')[1];
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: 'Token is missing',
-      code: 'UNAUTHORIZED'
-    });
-    return;
-  }
+  // 3. No token, no bypass — reject
+  res.status(401).json({
+    success: false,
+    error: 'Authorization header is missing or invalid',
+    code: 'UNAUTHORIZED'
+  });
+};
 
-  const container = Container.getInstance();
-  const authService = container.resolve<AuthService>('AuthService');
+// Cache the dev user so we don't hit the DB on every request
+let cachedDevUser: AuthenticatedRequest['user'] | null = null;
+
+async function resolveDevUser(): Promise<NonNullable<AuthenticatedRequest['user']>> {
+  if (cachedDevUser) return cachedDevUser;
 
   try {
-    const payload = authService.verifyToken(token);
-    req.user = payload;
-    return next();
-  } catch (error) {
-    res.status(401).json({
-      success: false,
-      error: 'Invalid or expired token',
-      code: 'UNAUTHORIZED'
+    const { prisma } = require('../database/prisma.client');
+    // Find the admin user in the default tenant
+    const user = await prisma.user.findFirst({
+      where: { email: 'admin@hireflow.com' },
+      include: { role: true },
+      orderBy: { createdAt: 'desc' }, // Newest first
     });
-    return;
+
+    if (user) {
+      cachedDevUser = {
+        userId: user.id,
+        email: user.email,
+        role: user.role?.name || 'ADMIN',
+        organizationId: user.tenantId,
+      };
+      return cachedDevUser;
+    }
+  } catch (err) {
+    console.warn('[AuthMiddleware] Failed to resolve dev user from DB:', err);
   }
-};
+
+  // Absolute fallback
+  cachedDevUser = {
+    userId: 'system',
+    organizationId: 'default-tenant',
+    role: 'ADMIN',
+    email: 'admin@hireflow.com'
+  };
+  return cachedDevUser;
+}

@@ -1,11 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as socketIo from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
-
-type Socket = any; // Fallback type if module resolution fails
-const io = (socketIo as any).io || socketIo;
 
 
 interface SocketContextData {
@@ -32,7 +29,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     const socketInstance = io(socketOrigin, {
       auth: { token },
-      transports: ['websocket', 'polling'], // Fallback mechanism built-in
+      transports: ['polling', 'websocket'], // Robust fallback mechanism
     });
 
     socketInstance.on('connect', () => {

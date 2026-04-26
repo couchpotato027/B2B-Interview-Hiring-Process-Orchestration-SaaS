@@ -110,4 +110,23 @@ evaluationRouter.post('/:id/recalculate', (req, res, next) =>
   new EvaluationController().recalculateEvaluation(req, res, next),
 );
 
+/**
+ * @openapi
+ * /evaluations/candidate/{candidateId}:
+ *   get:
+ *     tags: [Evaluations]
+ *     summary: Get evaluations for a candidate
+ *     parameters:
+ *       - name: candidateId
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: List of evaluations
+ */
+evaluationRouter.get('/candidate/:candidateId', (req, res, next) =>
+  new EvaluationController().getCandidateEvaluations(req, res, next),
+);
+
 export { evaluationRouter };

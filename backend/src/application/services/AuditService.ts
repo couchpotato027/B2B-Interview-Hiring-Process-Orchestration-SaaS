@@ -44,7 +44,9 @@ export class AuditService {
   }
 
   async getLogs(tenantId: string, filters: any) {
-    const { userId, action, resource, resourceId, startDate, endDate, skip = 0, take = 50 } = filters;
+    const { userId, action, resource, resourceId, startDate, endDate } = filters;
+    const skip = parseInt(filters.skip as string) || 0;
+    const take = parseInt(filters.take as string) || 50;
 
     const where: any = { tenantId };
     if (userId) where.userId = userId;

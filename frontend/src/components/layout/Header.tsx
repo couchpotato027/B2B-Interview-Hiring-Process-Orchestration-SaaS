@@ -42,24 +42,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </button>
 
             <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-                <form className="relative flex flex-1 items-center" action="#" method="GET">
-                    <label htmlFor="search-field" className="sr-only">
-                        {t('common.search')}
-                    </label>
-                    <div className="relative w-full max-w-md">
-                        <Search
-                            className="pointer-events-none absolute inset-y-0 left-3 h-full w-5 text-slate-400 dark:text-slate-500"
-                            aria-hidden="true"
-                        />
-                        <input
-                            id="search-field"
-                            className="block h-10 w-full rounded-full border-0 bg-slate-100/50 dark:bg-slate-800/50 py-1.5 pl-10 pr-3 text-foreground ring-1 ring-inset ring-border placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 outline-none transition-all shadow-sm"
-                            placeholder={t('common.search')}
-                            type="search"
-                            name="search"
-                        />
-                    </div>
-                </form>
+                <div className="flex-1" />
                 <div className="flex items-center gap-x-2 lg:gap-x-4">
                     <LanguageSwitcher />
                     <ThemeToggle />
@@ -78,11 +61,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         >
                             <span className="sr-only">Open user menu</span>
                             <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shadow-sm">
-                                {initials}
+                                {user?.firstName ? `${user.firstName.charAt(0)}${user.lastName?.charAt(0) || ''}`.toUpperCase() : 'U'}
                             </div>
                             <span className="hidden lg:flex lg:items-center">
                                 <span className="ml-3 text-sm font-semibold leading-6 text-foreground" aria-hidden="true">
-                                    {user?.firstName ? `${user.firstName} ${user.lastName}` : 'Loading...'}
+                                    {user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'}
                                 </span>
                             </span>
                         </button>

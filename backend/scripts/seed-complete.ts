@@ -8,7 +8,7 @@ async function main() {
   console.log('🌱 Starting Complete IDEMPOTENT Seeder...');
 
   // 1. Setup default tenant
-  const tenantId = 'default-tenant-id';
+  const tenantId = 'default-tenant';
   const tenant = await prisma.tenant.upsert({
     where: { id: tenantId },
     update: {},
@@ -47,6 +47,22 @@ async function main() {
     },
   });
   console.log('✅ Admin user ready');
+
+  // 3b. Setup recruiter user
+  const recruiterRole = roles[1];
+  const recruiterUser = await prisma.user.upsert({
+    where: { tenantId_email: { tenantId, email: 'recruiter@hireflow.com' } },
+    update: { passwordHash },
+    create: {
+      tenantId,
+      roleId: recruiterRole.id,
+      email: 'recruiter@hireflow.com',
+      passwordHash,
+      firstName: 'Lead',
+      lastName: 'Recruiter',
+    },
+  });
+  console.log('✅ Recruiter user ready');
 
   // 4. Setup pipeline template
   const pipeline = await prisma.pipelineTemplate.upsert({
@@ -121,10 +137,14 @@ async function main() {
             data: {
                 tenantId,
                 candidateId: candidate.id,
+                jobId: job!.id,
                 stageId: stage!.id,
                 interviewerId: adminUser.id,
                 recommendation: i % 4 === 0 ? 'STRONG_HIRE' : 'HIRE',
-                scores: { technical: 4, culture: 5, overall: 4.5 } as any,
+                skillMatchScore: 4,
+                experienceScore: 5,
+                projectRelevanceScore: 4,
+                overallScore: 4,
             }
         });
     }
@@ -135,7 +155,8 @@ async function main() {
   console.log('\n🚀 IDEMPOTENT SEEDING COMPLETE!');
   console.log('--------------------------------------------------');
   console.log('Admin Email: admin@hireflow.com');
-  console.log('Admin PASS:  password123');
+  console.log('Recruiter Email: recruiter@hireflow.com');
+  console.log('Password (for both): password123');
   console.log('--------------------------------------------------');
 }
 

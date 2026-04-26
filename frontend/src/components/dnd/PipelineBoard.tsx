@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
     DragEndEvent, 
     DragStartEvent, 
@@ -18,6 +18,7 @@ import { toast } from 'react-hot-toast';
 import { CandidateCard } from './CandidateCard';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import BulkActionsToolbar from '@/components/candidates/BulkActionsToolbar';
+import { CandidateDetailDrawer } from '@/components/candidates/CandidateDetailDrawer';
 
 export default function PipelineBoard() {
     const [data, setData] = useState<BoardData | null>(null);
@@ -27,9 +28,13 @@ export default function PipelineBoard() {
     const [activeCandidateId, setActiveCandidateId] = useState<string | null>(null);
     const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
     const [user, setUser] = useState<{ role?: string } | null>(null);
+    const [selectedDetailCandidateId, setSelectedDetailCandidateId] = useState<string | null>(null);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     // Flat list of all candidates for selection hook
-    const allCandidates = Object.values(data?.candidates || {}).map(c => ({ id: c.id }));
+    const allCandidates = useMemo(() => 
+        Object.values(data?.candidates || {}).map(c => ({ id: c.id })),
+    [data?.candidates]);
     const { 
         selectedIds, 
         isSelected, 
@@ -86,13 +91,18 @@ export default function PipelineBoard() {
             const candidates: { id: string; firstName: string; lastName: string; email: string; currentStageId: string }[] = pipeline.candidates || [];
 
             const boardCandidates: Record<string, Candidate> = {};
-            candidates.forEach(c => {
+            candidates.forEach((c: any) => {
                 boardCandidates[c.id] = {
                     id: c.id,
                     name: `${c.firstName} ${c.lastName}`,
                     role: c.email,
                     avatar: c.firstName.charAt(0),
-                    score: 0,
+                    score: c.score || 0,
+                    assignedRecruiter: c.assignedRecruiter ? {
+                        id: c.assignedRecruiter.id,
+                        firstName: c.assignedRecruiter.firstName,
+                        lastName: c.assignedRecruiter.lastName,
+                    } : undefined,
                 };
             });
 
@@ -244,11 +254,85 @@ export default function PipelineBoard() {
         }
     };
 
+    const handleCardClick = (id: string) => {
+        setSelectedDetailCandidateId(id);
+        setIsDrawerOpen(true);
+    };
+
     if (loading) return (
          <div className="space-y-6 animate-pulse p-4">
             <div><div className="h-8 w-48 bg-slate-200 rounded mb-2"></div></div>
             <div className="flex gap-4">
                  {[1,2,3,4].map(i => <div key={i} className="w-80 h-96 bg-slate-100 rounded-3xl shrink-0"></div>)}
+            </div>
+        </div>
+    );
+
+    const boardContent = (!data || data.columnOrder.length === 0) ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-12 rounded-3xl border-2 border-dashed border-slate-200">
+            <Layers className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+            <h3 className="text-sm font-semibold text-slate-900">No pipeline mapped</h3>
+            <p className="mt-1 text-sm text-slate-500">Please select a pipeline or configure stages in Workflow Builder.</p>
+        </div>
+    ) : (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300 snap-x snap-mandatory lg:snap-none no-scrollbar md:scrollbar-default">
+                <ClientDndContext 
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragEnd={handleDragEnd}
+                >
+                    <div className="flex h-full items-start gap-4 px-1 min-w-max">
+                        {data.columnOrder.map((columnId) => {
+                            const column = data.columns[columnId];
+                            const candidates = column.candidateIds.map(
+                                (candidateId) => data.candidates[candidateId]
+                            ).filter(Boolean);
+
+                            return (
+                                <div key={column.id} className="snap-center">
+                                    <KanbanColumn
+                                        column={column}
+                                        candidates={candidates}
+                                        isUpdating={isUpdating}
+                                        onClick={handleCardClick}
+                                        selection={{
+                                            selectedIds,
+                                            isSelected,
+                                            toggleSelect,
+                                            handleShiftClick
+                                        }}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </div>
+                    
+                    <DragOverlay dropAnimation={{
+                        duration: 250,
+                        easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+                        sideEffects: defaultDropAnimationSideEffects({
+                            styles: { active: { opacity: '0.5' } },
+                        }),
+                    }}>
+                        {activeCandidateId && data.candidates[activeCandidateId] ? (
+                            <CandidateCard 
+                                candidate={data.candidates[activeCandidateId]} 
+                                isOverlay 
+                                loading={isUpdating[activeCandidateId]}
+                            />
+                        ) : null}
+                    </DragOverlay>
+                </ClientDndContext>
+            </div>
+
+            <div className="lg:hidden flex justify-center gap-2 mt-4 pb-2">
+                {data.columnOrder.map((columnId, idx) => (
+                    <div 
+                        key={columnId}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${idx === 0 ? 'w-4 bg-[#c8ff00]' : 'w-1.5 bg-slate-200'}`}
+                    />
+                ))}
             </div>
         </div>
     );
@@ -280,69 +364,20 @@ export default function PipelineBoard() {
                 )}
             </div>
 
-            {!data || data.columnOrder.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-12 rounded-3xl border-2 border-dashed border-slate-200">
-                     <Layers className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-                    <h3 className="text-sm font-semibold text-slate-900">No pipeline mapped</h3>
-                    <p className="mt-1 text-sm text-slate-500">Please select a pipeline or configure stages in Workflow Builder.</p>
-                </div>
-            ) : (
-                <div className="flex-1 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300">
-                    <ClientDndContext 
-                        onDragStart={handleDragStart}
-                        onDragOver={handleDragOver}
-                        onDragEnd={handleDragEnd}
-                    >
-                        <div className="flex h-full items-start gap-4 px-1 min-w-max">
-                            {data.columnOrder.map((columnId) => {
-                                const column = data.columns[columnId];
-                                const candidates = column.candidateIds.map(
-                                    (candidateId) => data.candidates[candidateId]
-                                ).filter(Boolean);
-
-                                return (
-                                    <KanbanColumn
-                                        key={column.id}
-                                        column={column}
-                                        candidates={candidates}
-                                        isUpdating={isUpdating}
-                                        selection={{
-                                            selectedIds,
-                                            isSelected,
-                                            toggleSelect,
-                                            handleShiftClick
-                                        }}
-                                    />
-                                );
-                            })}
-                        </div>
-                        <DragOverlay dropAnimation={{
-                            duration: 250,
-                            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
-                            sideEffects: defaultDropAnimationSideEffects({
-                                styles: {
-                                    active: {
-                                        opacity: '0.5',
-                                    },
-                                },
-                            }),
-                        }}>
-                            {activeCandidateId ? (
-                                <CandidateCard 
-                                    candidate={data.candidates[activeCandidateId]} 
-                                    isOverlay 
-                                    loading={isUpdating[activeCandidateId]}
-                                />
-                            ) : null}
-                        </DragOverlay>
-                    </ClientDndContext>
-                </div>
-            )}
+            {boardContent}
 
             <BulkActionsToolbar 
                 selectedIds={selectedIds}
                 onClear={clearSelection}
                 onActionComplete={loadBoard}
+                availableStages={data?.columnOrder.map(id => ({ id, name: data.columns[id].title })) || []}
+            />
+
+            <CandidateDetailDrawer 
+                candidateId={selectedDetailCandidateId}
+                isOpen={isDrawerOpen}
+                onClose={() => setIsDrawerOpen(false)}
+                onUpdate={loadBoard}
                 availableStages={data?.columnOrder.map(id => ({ id, name: data.columns[id].title })) || []}
             />
         </div>

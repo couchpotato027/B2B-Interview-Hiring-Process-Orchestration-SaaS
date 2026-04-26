@@ -24,7 +24,7 @@ export class PrismaInterviewRepository implements IInterviewRepository {
       include: { panel: true },
       orderBy: { scheduledAt: 'desc' }
     });
-    return models.map(this.mapToEntity);
+    return models.map(m => this.mapToEntity(m));
   }
 
   async findByInterviewerId(userId: string, tenantId: string): Promise<Interview[]> {
@@ -36,7 +36,7 @@ export class PrismaInterviewRepository implements IInterviewRepository {
       include: { panel: true },
       orderBy: { scheduledAt: 'asc' }
     });
-    return models.map(this.mapToEntity);
+    return models.map(m => this.mapToEntity(m));
   }
 
   async findAvailabilityConflicts(userIds: string[], start: Date, end: Date, tenantId: string): Promise<Interview[]> {
@@ -69,7 +69,7 @@ export class PrismaInterviewRepository implements IInterviewRepository {
         const reqStart = start.getTime();
         const reqEnd = end.getTime();
         return (mStart < reqEnd && mEnd > reqStart);
-    }).map(this.mapToEntity);
+    }).map(m => this.mapToEntity(m));
   }
 
   async save(interview: Interview): Promise<Interview> {
