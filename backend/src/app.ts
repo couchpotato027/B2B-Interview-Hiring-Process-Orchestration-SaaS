@@ -39,6 +39,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // 2. PUBLIC ROUTES
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).send('<h1>HireFlow API is Live</h1><p>The backend is successfully connected and running on Railway.</p>');
+});
+
 app.get('/api/health', (_req: Request, res: Response) => {
   res.status(200).json({ 
     status: 'UP', 
