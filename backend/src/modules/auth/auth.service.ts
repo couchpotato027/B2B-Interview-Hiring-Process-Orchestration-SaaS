@@ -51,6 +51,7 @@ export class AuthService {
         });
 
         if (!user) throw new UnauthorizedError('Invalid credentials');
+        if (!user.passwordHash) throw new UnauthorizedError('This account uses social login. Please sign in with Google.');
 
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isMatch) throw new UnauthorizedError('Invalid credentials');
