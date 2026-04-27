@@ -423,6 +423,7 @@ export class CandidateController extends BaseController {
       }
       return this.rawOk(res, dto);
     } catch (error) {
+      console.error('🔥 [Upload] CRITICAL CONTROLLER ERROR:', error);
       return next(error);
     }
   };

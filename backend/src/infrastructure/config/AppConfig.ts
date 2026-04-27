@@ -54,7 +54,7 @@ export class AppConfig {
         jwtSecret: process.env.JWT_SECRET ?? 'hireflow_development_secret_key_2024_!@#',
         // Storage
         storageProvider: (process.env.STORAGE_PROVIDER ?? 'local') as 'local' | 's3',
-        uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
+        uploadDir: process.env.UPLOAD_DIR ?? (nodeEnv === 'production' ? '/tmp/uploads' : 'uploads'),
         baseUrl: process.env.API_BASE_URL ?? 'http://localhost:3001',
         s3Bucket: process.env.S3_BUCKET ?? '',
         s3Region: process.env.S3_REGION ?? 'us-east-1',
