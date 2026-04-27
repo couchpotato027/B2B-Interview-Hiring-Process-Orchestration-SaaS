@@ -70,7 +70,24 @@ export class ProcessResumeUseCase {
       }
 
       if (!pipelineId || !firstStageId) {
-          return { success: false, error: 'No valid pipeline or stage found for candidate placement', code: 'PIPELINE_NOT_FOUND' };
+        console.log(`[ResumeProcess] Still no pipeline, creating one on-the-fly...`);
+        const newPipeline = await prisma.pipelineTemplate.create({
+          data: {
+            tenantId: input.organizationId,
+            name: 'Standard Pipeline',
+            roleType: 'GENERAL',
+            isActive: true,
+            stages: {
+              create: [
+                { tenantId: input.organizationId, name: 'Sourced', orderIndex: 0, stageType: 'STATIC' },
+                { tenantId: input.organizationId, name: 'Interview', orderIndex: 1, stageType: 'INTERVIEW' },
+              ]
+            }
+          },
+          include: { stages: true }
+        });
+        pipelineId = newPipeline.id;
+        firstStageId = newPipeline.stages[0]?.id;
       }
 
       // 5. Check for existing candidate by email

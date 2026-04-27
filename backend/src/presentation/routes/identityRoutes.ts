@@ -96,6 +96,27 @@ router.post('/google-login', async (req: Request, res: Response) => {
         },
         include: { role: true, tenant: true }
       });
+
+      // 4. Ensure a default pipeline exists for the new organization
+      const existingPipeline = await prisma.pipelineTemplate.findFirst({ where: { tenantId: defaultTenant.id } });
+      if (!existingPipeline) {
+        await prisma.pipelineTemplate.create({
+          data: {
+            tenantId: defaultTenant.id,
+            name: 'Standard Recruitment Pipeline',
+            roleType: 'GENERAL',
+            isActive: true,
+            stages: {
+              create: [
+                { tenantId: defaultTenant.id, name: 'Sourced', orderIndex: 0, stageType: 'STATIC' },
+                { tenantId: defaultTenant.id, name: 'Screening', orderIndex: 1, stageType: 'ASSESSMENT' },
+                { tenantId: defaultTenant.id, name: 'Interview', orderIndex: 2, stageType: 'INTERVIEW' },
+                { tenantId: defaultTenant.id, name: 'Offer', orderIndex: 3, stageType: 'STATIC' },
+              ]
+            }
+          }
+        });
+      }
     } else if (!user.googleId) {
       // Link Google account to existing email account
       user = await prisma.user.update({
