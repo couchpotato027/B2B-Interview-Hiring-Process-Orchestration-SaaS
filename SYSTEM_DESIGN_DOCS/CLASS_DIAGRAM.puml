@@ -1,0 +1,56 @@
+@startuml HireFlow Class Diagram (Clean Architecture)
+
+package "Presentation Layer" {
+    class CandidateController {
+        +uploadResume()
+        +getCandidate()
+    }
+}
+
+package "Application Layer" {
+    class ProcessResumeUseCase {
+        +execute()
+    }
+    
+    interface IAIService {
+        +parseResume()
+        +scoreCandidate()
+    }
+}
+
+package "Domain Layer" {
+    class Candidate {
+        +id: UUID
+        +firstName: String
+        +lastName: String
+        +email: String
+        +validate()
+    }
+    
+    interface ICandidateRepository {
+        +save(candidate)
+        +findById(id)
+    }
+}
+
+package "Infrastructure Layer" {
+    class PrismaCandidateRepository implements ICandidateRepository {
+        +save()
+    }
+    
+    class GeminiAIService implements IAIService {
+        +parseResume()
+    }
+    
+    class Container {
+        +resolve()
+    }
+}
+
+CandidateController --> ProcessResumeUseCase : uses
+ProcessResumeUseCase --> ICandidateRepository : uses
+ProcessResumeUseCase --> IAIService : uses
+ProcessResumeUseCase ..> Candidate : creates
+PrismaCandidateRepository ..> Candidate : maps to DB
+
+@enduml

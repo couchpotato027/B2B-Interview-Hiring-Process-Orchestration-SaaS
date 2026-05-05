@@ -10,7 +10,7 @@ import { fileRouter } from './fileRoutes';
 import { searchRouter } from './searchRoutes';
 import { interviewRouter } from './interviewRoutes';
 import { complianceRouter } from './complianceRoutes';
-import auditRouter from '../../modules/audit/audit.routes';
+import { auditRouter } from './auditRoutes';
 import { emailRouter } from './emailRoutes';
 import { notificationRouter } from './notificationRoutes';
 import { exchangeRouter } from './exchangeRoutes';

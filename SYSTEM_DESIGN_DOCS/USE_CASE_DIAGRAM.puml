@@ -1,0 +1,34 @@
+@startuml HireFlow Use Case Diagram
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Recruiter" as R
+actor "Admin" as A
+actor "AI Service (Groq/Gemini)" as AI <<System>>
+
+rectangle "HireFlow System" {
+    (Login via Google) as UC1
+    (Upload Resume) as UC2
+    (Parse Resume Text) as UC3
+    (Score Candidate) as UC4
+    (Move Candidate Stage) as UC5
+    (View Analytics) as UC6
+    (Manage Team) as UC7
+}
+
+R --> UC1
+R --> UC2
+R --> UC5
+R --> UC6
+
+A --> UC1
+A --> UC7
+A --> UC6
+
+UC2 ..> UC3 : <<include>>
+UC3 ..> UC4 : <<include>>
+
+UC3 -- AI
+UC4 -- AI
+
+@enduml

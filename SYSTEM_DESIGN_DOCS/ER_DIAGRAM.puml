@@ -1,0 +1,67 @@
+@startuml HireFlow ER Diagram (Crow's Foot)
+
+entity "Tenant" as tenant {
+    * id: UUID [PK]
+    --
+    name: String
+}
+
+entity "User" as user {
+    * id: UUID [PK]
+    --
+    tenantId: UUID [FK]
+    email: String
+    googleId: String
+}
+
+entity "Job" as job {
+    * id: UUID [PK]
+    --
+    tenantId: UUID [FK]
+    title: String
+    status: Enum
+}
+
+entity "PipelineTemplate" as pipeline {
+    * id: UUID [PK]
+    --
+    tenantId: UUID [FK]
+    name: String
+}
+
+entity "PipelineStage" as stage {
+    * id: UUID [PK]
+    --
+    pipelineId: UUID [FK]
+    name: String
+    orderIndex: Int
+}
+
+entity "Candidate" as candidate {
+    * id: UUID [PK]
+    --
+    tenantId: UUID [FK]
+    currentStageId: UUID [FK]
+    email: String
+    firstName: String
+}
+
+entity "Evaluation" as evaluation {
+    * id: UUID [PK]
+    --
+    candidateId: UUID [FK]
+    score: Float
+    feedback: Text
+}
+
+tenant ||--o{ user
+tenant ||--o{ job
+tenant ||--o{ pipeline
+tenant ||--o{ candidate
+
+job ||--|| pipeline
+pipeline ||--o{ stage
+candidate }|--|| stage
+candidate ||--o{ evaluation
+
+@enduml
