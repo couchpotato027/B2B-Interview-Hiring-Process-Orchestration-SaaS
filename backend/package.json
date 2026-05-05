@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "HireFlow Backend - Unified Architecture",
   "main": "dist/index.js",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --clear src/index.ts",
     "dev:debug": "NODE_ENV=development DEBUG=* ts-node-dev --inspect --respawn src/index.ts",
