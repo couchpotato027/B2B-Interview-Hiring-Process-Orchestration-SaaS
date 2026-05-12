@@ -160,7 +160,6 @@ export default function LoginPage() {
                                     useOneTap
                                     theme="outline"
                                     shape="rectangular"
-                                    width="100%"
                                 />
                             </div>
                         </div>
